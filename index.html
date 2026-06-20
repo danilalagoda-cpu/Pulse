@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
-    <!-- Подключаем библиотеки Firebase в самом верху, чтобы они загрузились первыми -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-</head>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PULSE — Живая Соцсеть</title>
@@ -73,7 +70,6 @@
 
         .auth-card p { color: var(--text-muted); margin-bottom: 25px; font-size: 14px; }
         .pulse-heart { font-size: 40px; margin-bottom: 15px; animation: heartbeat 1.2s infinite ease-in-out; }
-        /* Текстовые уведомления вместо alert */
         #auth-status {
             font-size: 13px;
             font-weight: 600;
@@ -84,7 +80,6 @@
         .status-error { color: var(--neon-pink); text-shadow: 0 0 10px rgba(255, 0, 127, 0.4); }
         .status-success { color: var(--neon-green); text-shadow: 0 0 10px rgba(57, 255, 20, 0.4); }
 
-        /* Поля ввода */
         input {
             width: 100%;
             padding: 16px 20px;
@@ -104,15 +99,9 @@
             background: rgba(0, 0, 0, 0.8);
         }
 
-        /* Кнопки */
         .auth-buttons { display: flex; flex-direction: column; gap: 12px; }
 
-        button {
-            cursor: pointer;
-            border: none;
-            font-weight: 600;
-            transition: 0.2s;
-        }
+        button { cursor: pointer; border: none; font-weight: 600; transition: 0.2s; }
 
         .btn-primary {
             padding: 16px;
@@ -137,7 +126,6 @@
         }
         .btn-secondary:hover { background: rgba(255, 255, 255, 0.04); }
 
-        /* Главный интерфейс */
         .sidebar {
             width: 300px;
             background: var(--panel-bg);
@@ -158,6 +146,7 @@
             -webkit-text-fill-color: transparent;
         }
         .logo .dot { -webkit-text-fill-color: var(--neon-pink); }
+
         nav { flex: 1; display: flex; flex-direction: column; gap: 10px; }
         nav a {
             text-decoration: none;
@@ -197,7 +186,6 @@
         .btn-logout { background: transparent; color: var(--text-muted); font-size: 13px; }
         .btn-logout:hover { color: var(--neon-pink); }
 
-        /* Чат */
         .chat-container { flex: 1; display: flex; flex-direction: column; }
 
         .chat-header {
@@ -311,11 +299,10 @@
             <h2>PULSE</h2>
             <p>Подключись к единому ритму</p>
             
-            <!-- Сюда будут красиво выводиться ошибки/успех -->
             <div id="auth-status"></div>
 
-            <input type="email" id="email-input" placeholder="Введите ваше имя">
-            <input type="password" id="password-input" placeholder="Пароль">
+            <input type="text" id="email-input" placeholder="Введите ваше имя">
+            <input type="password" id="password-input" placeholder="Секретный пароль">
             <div class="auth-buttons">
                 <button id="login-btn" class="btn-primary">Войти</button>
                 <button id="register-btn" class="btn-secondary">Создать аккаунт</button>
@@ -352,22 +339,132 @@
                 </div>
             </div>
             
-            <div id="chat-messages" class="messages-area">
-                <!-- Сюда летят сообщения -->
-            </div>
+            <div id="chat-messages" class="messages-area"></div>
 
             <form id="message-form" class="message-input-area">
                 <input type="text" id="message-input" placeholder="Напиши что-нибудь..." autocomplete="off" required>
                 <button type="submit" class="btn-send">
                     <span>Отправить</span>
-                    <svg class="send-icon" viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/></svg>
+                    <svg viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/></svg>
                 </button>
             </form>
         </main>
     </div>
-
+    <!-- Наш собственный сетевой мост Firebase (REST API) -->
     <script>
-        // Твоя конфигурация Firebase
+        // 1. Интеграция firebase-app.js
+        (function() {
+            'use strict';
+            class FirebaseApp {
+                constructor(options, name) {
+                    this.options = options;
+                    this.name = name || '[DEFAULT]';
+                }
+                database() { 
+                    return window.firebase.database(this); 
+                }
+            }
+            const appsMap = new Map();
+            const firebaseNamespace = {
+                initializeApp: function(options, config) {
+                    const name = (config && config.name) || '[DEFAULT]';
+                    if (appsMap.has(name)) return appsMap.get(name);
+                    const newApp = new FirebaseApp(options, name);
+                    appsMap.set(name, newApp);
+                    return newApp;
+                },
+                app: function(name) {
+                    const appName = name || '[DEFAULT]';
+                    if (!appsMap.has(appName)) throw new Error("No Firebase App created");
+                    return appsMap.get(appName);
+                }
+            };
+            if (typeof window !== 'undefined') window.firebase = firebaseNamespace;
+            if (typeof globalThis !== 'undefined') globalThis.firebase = firebaseNamespace;
+        })();
+
+        // 2. Интеграция firebase-database.js
+        (function() {
+            'use strict';
+            if (typeof firebase === 'undefined') return;
+
+            class DataSnapshotCompat {
+                constructor(key, value) {
+                    this.key = key;
+                    this._value = value;
+                }
+                val() { return this._value; }
+                exists() { return this._value !== null && this._value !== undefined; }
+            }
+
+            class ReferenceCompat {
+                constructor(path, dbRef) {
+                    this.path = path || '';
+                    this.db = dbRef;
+                    this.key = this.path.split('/').pop() || null;
+                }
+                child(childPath) {
+                    return new ReferenceCompat(this.path + '/' + childPath, this.db);
+                }
+                getURL() {
+                    return this.db.url + '/' + this.path + '.json?auth=' + this.db.key;
+                }
+                set(value) {
+                    return fetch(this.getURL(), { method: 'PUT', body: JSON.stringify(value) }).then(r => r.json());
+                }
+                push(value) {
+                    const genId = 'id_' + Math.floor(Math.random() * 1000000);
+                    const newRef = this.child(genId);
+                    if (value !== undefined) newRef.set(value);
+                    return newRef;
+                }
+                update(value) {
+                    return fetch(this.getURL(), { method: 'PATCH', body: JSON.stringify(value) }).then(r => r.json());
+                }
+                once(type) {
+                    return fetch(this.getURL()).then(r => r.json()).then(data => new DataSnapshotCompat(this.key, data));
+                }
+                on(type, callback) {
+                    const run = () => {
+                        this.once().then(snap => { if (callback) callback(snap); });
+                    };
+                    run();
+                    const intervalId = setInterval(run, 3000);
+                    window._fb_intervals = window._fb_intervals || [];
+                    window._fb_intervals.push(intervalId);
+                    return callback;
+                }
+                off() {
+                    if (window._fb_intervals) {
+                        window._fb_intervals.forEach(clearInterval);
+                        window._fb_intervals = [];
+                    }
+                }
+                transaction(updateFn, onComplete) {
+                    return this.once().then(snap => {
+                        const newVal = updateFn(snap.val());
+                        return this.set(newVal).then(() => {
+                            const finalSnap = new DataSnapshotCompat(this.key, newVal);
+                            if (onComplete) onComplete(null, true, finalSnap);
+                            return { committed: true, snapshot: finalSnap };
+                        });
+                    });
+                }
+            }
+
+            class DatabaseCompat {
+                constructor(app) {
+                    this.url = app.options.databaseURL.replace(/\/$/, '');
+                    this.key = app.options.apiKey;
+                }
+                ref(path) { return new ReferenceCompat(path, this); }
+            }
+
+            firebase.database = function(app) {
+                return new DatabaseCompat(app || firebase.app());
+            };
+        })();
+        // 3. Инициализация твоей личной базы данных PULSE
         const firebaseConfig = {
             apiKey: "AIzaSyADDpr8MTqi33HmM8mN2b2r-CB9bCRPy4c",
             authDomain: "://firebaseapp.com",
@@ -379,11 +476,10 @@
             databaseURL: "https://firebasedatabase.app"
         };
 
-        // Инициализируем базу данных через совместимый синтаксис
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Привязываем элементы интерфейса
+        // Поиск элементов на экране
         const authScreen = document.getElementById('auth-screen');
         const appScreen = document.getElementById('app-screen');
         const usernameInput = document.getElementById('email-input');
@@ -400,12 +496,13 @@
 
         let currentUserName = localStorage.getItem('pulse_user') || null;
 
-        // Плавный вывод статуса вместо alert
+        // Показ ошибок прямо на форме входа без alert
         function showMsg(text, type) {
             authStatus.textContent = text;
             authStatus.className = type === 'error' ? 'status-error' : 'status-success';
             setTimeout(() => { authStatus.textContent = ''; }, 4000);
         }
+
         function checkAuth() {
             if (currentUserName) {
                 userDisplayName.textContent = currentUserName;
@@ -419,7 +516,7 @@
             }
         }
 
-        // РЕГИСТРАЦИЯ ПО ИМЕНИ
+        // РЕГИСТРАЦИЯ
         registerBtn.addEventListener('click', async () => {
             const name = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value;
@@ -428,7 +525,7 @@
             if (name.length < 3) return showMsg('Имя должно быть от 3 символов!', 'error');
 
             try {
-                const snapshot = await db.ref(`users/${name}`).get();
+                const snapshot = await db.ref(`users/${name}`).once();
 
                 if (snapshot.exists()) {
                     showMsg('Это имя уже занято!', 'error');
@@ -439,10 +536,10 @@
                     showMsg('Вход выполнен!', 'success');
                     setTimeout(checkAuth, 500);
                 }
-            } catch (e) { showMsg('Ошибка записи: ' + e.message, 'error'); }
+            } catch (e) { showMsg('Ошибка сети: ' + e.message, 'error'); }
         });
 
-        // ВХОД ПО ИМЕНИ
+        // ВХОД
         loginBtn.addEventListener('click', async () => {
             const name = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value;
@@ -450,7 +547,7 @@
             if (!name || !pass) return showMsg('Введи имя и пароль!', 'error');
 
             try {
-                const snapshot = await db.ref(`users/${name}`).get();
+                const snapshot = await db.ref(`users/${name}`).once();
 
                 if (snapshot.exists() && snapshot.val().password === pass) {
                     currentUserName = name;
@@ -460,7 +557,7 @@
                 } else {
                     showMsg('Неверное имя или пароль!', 'error');
                 }
-            } catch (e) { showMsg('Ошибка входа: ' + e.message, 'error'); }
+            } catch (e) { showMsg('Ошибка сети: ' + e.message, 'error'); }
         });
 
         logoutBtn.addEventListener('click', () => {
@@ -468,15 +565,15 @@
             localStorage.removeItem('pulse_user');
             checkAuth();
         });
-        // ОТПРАВКА СООБЩЕНИЯ
+
+        // ОТПРАВКА СМС
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!messageInput.value.trim() || !currentUserName) return;
 
             try {
                 const messagesRef = db.ref('messages');
-                const newMessageRef = messagesRef.push();
-                await newMessageRef.set({
+                await messagesRef.push({
                     text: messageInput.value,
                     senderName: currentUserName,
                     timestamp: Date.now()
@@ -485,22 +582,22 @@
             } catch (error) { console.error("Ошибка при отправке: ", error); }
         });
 
-        // СТРИМИНГ СООБЩЕНИЙ В РЕАЛЬНОМ ВРЕМЕНИ
+        // ОНЛАЙН ОБНОВЛЕНИЕ ПЕРЕПИСКИ
         function loadMessages() {
-            const messagesRef = db.ref('messages');
-            messagesRef.on('value', (snapshot) => {
+            db.ref('messages').on('value', (snapshot) => {
                 chatMessages.innerHTML = '';
-                snapshot.forEach((childSnapshot) => {
-                    const data = childSnapshot.val();
-                    const isMe = data.senderName === currentUserName;
+                const data = snapshot.val();
+                if (!data) return;
+
+                Object.keys(data).forEach((key) => {
+                    const msgData = data[key];
+                    const isMe = msgData.senderName === currentUserName;
                     const messageElement = document.createElement('div');
                     messageElement.classList.add('msg', isMe ? 'outgoing' : 'incoming');
                     
-                    const nickname = data.senderName ? data.senderName : 'Аноним';
-                    
                     messageElement.innerHTML = `
-                        <span class="sender">${isMe ? 'Ты' : nickname}</span>
-                        <p>${data.text}</p>
+                        <span class="sender">${isMe ? 'Ты' : msgData.senderName}</span>
+                        <p>${msgData.text}</p>
                     `;
                     chatMessages.appendChild(messageElement);
                 });
@@ -508,9 +605,7 @@
             });
         }
 
-        // Запуск проверки авторизации при старте
         checkAuth();
     </script>
 </body>
 </html>
-
