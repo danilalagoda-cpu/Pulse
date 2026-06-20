@@ -677,19 +677,14 @@
 
     </div>
 
-    <!-- Наш собственный сетевой мост Firebase (REST API) -->
+    <!-- Часть 1 из 3: Сетевая REST-архитектура PULSE -->
     <script>
         // 1. Интеграция firebase-app.js
         (function() {
             'use strict';
             class FirebaseApp {
-                constructor(options, name) {
-                    this.options = options;
-                    this.name = name || '[DEFAULT]';
-                }
-                database() { 
-                    return window.firebase.database(this); 
-                }
+                constructor(options, name) { this.options = options; this.name = name || '[DEFAULT]'; }
+                database() { return window.firebase.database(this); }
             }
             const appsMap = new Map();
             const firebaseNamespace = {
@@ -697,101 +692,48 @@
                     const name = (config && config.name) || '[DEFAULT]';
                     if (appsMap.has(name)) return appsMap.get(name);
                     const newApp = new FirebaseApp(options, name);
-                    appsMap.set(name, newApp);
-                    return newApp;
-                },
-                app: function(name) {
-                    const appName = name || '[DEFAULT]';
-                    if (!appsMap.has(appName)) throw new Error("No Firebase App created");
-                    return appsMap.get(appName);
+                    appsMap.set(name, newApp); return newApp;
                 }
             };
-            if (typeof window !== 'undefined') window.firebase = firebaseNamespace;
-            if (typeof globalThis !== 'undefined') globalThis.firebase = firebaseNamespace;
+            window.firebase = firebaseNamespace;
         })();
 
         // 2. Интеграция firebase-database.js
         (function() {
             'use strict';
             if (typeof firebase === 'undefined') return;
-
             class DataSnapshotCompat {
-                constructor(key, value) {
-                    this.key = key;
-                    this._value = value;
-                }
+                constructor(key, value) { this.key = key; this._value = value; }
                 val() { return this._value; }
                 exists() { return this._value !== null && this._value !== undefined; }
             }
-
             class ReferenceCompat {
-                constructor(path, dbRef) {
-                    this.path = path || '';
-                    this.db = dbRef;
-                    this.key = this.path.split('/').pop() || null;
-                }
-                child(childPath) {
-                    return new ReferenceCompat(this.path + '/' + childPath, this.db);
-                }
+                constructor(path, dbRef) { this.path = path || ''; this.db = dbRef; }
+                child(childPath) { return new ReferenceCompat(this.path + '/' + childPath, this.db); }
                 getURL() {
-                    return this.db.url + '/' + this.path + '.json?auth=' + this.db.key;
+                    const base = "https://firebasedatabase.app";
+                    return base + '/' + this.path + '.json?auth=' + this.db.key;
                 }
-                set(value) {
-                    return fetch(this.getURL(), { method: 'PUT', body: JSON.stringify(value) }).then(r => r.json());
-                }
+                set(value) { return fetch(this.getURL(), { method: 'PUT', body: JSON.stringify(value) }).then(r => r.json()); }
                 push(value) {
                     const genId = 'id_' + Math.floor(Math.random() * 1000000);
                     const newRef = this.child(genId);
-                    if (value !== undefined) newRef.set(value);
-                    return newRef;
+                    if (value !== undefined) newRef.set(value); return newRef;
                 }
-                update(value) {
-                    return fetch(this.getURL(), { method: 'PATCH', body: JSON.stringify(value) }).then(r => r.json());
-                }
-                once(type) {
-                    return fetch(this.getURL()).then(r => r.json()).then(data => new DataSnapshotCompat(this.key, data));
-                }
+                once() { return fetch(this.getURL()).then(r => r.json()).then(data => new DataSnapshotCompat(null, data)); }
                 on(type, callback) {
-                    const run = () => {
-                        this.once().then(snap => { if (callback) callback(snap); });
-                    };
+                    const run = () => { this.once().then(snap => { if (callback) callback(snap); }); };
                     run();
                     const intervalId = setInterval(run, 3000);
-                    window._fb_intervals = window._fb_intervals || [];
-                    window._fb_intervals.push(intervalId);
+                    window._fb_intervals = window._fb_intervals || []; window._fb_intervals.push(intervalId);
                     return callback;
                 }
-                off() {
-                    if (window._fb_intervals) {
-                        window._fb_intervals.forEach(clearInterval);
-                        window._fb_intervals = [];
-                    }
-                }
-                transaction(updateFn, onComplete) {
-                    return this.once().then(snap => {
-                        const newVal = updateFn(snap.val());
-                        return this.set(newVal).then(() => {
-                            const finalSnap = new DataSnapshotCompat(this.key, newVal);
-                            if (onComplete) onComplete(null, true, finalSnap);
-                            return { committed: true, snapshot: finalSnap };
-                        });
-                    });
-                }
             }
-
             class DatabaseCompat {
-                constructor(app) {
-                    // Просто берем твою ссылку целиком, без всяких replace
-                    this.url = "https://pulse-66146-default-rtdb.europe-west1.firebasedatabase.app";
-                    this.key = app.options.apiKey;
-                }
+                constructor(app) { this.key = app.options.apiKey; }
                 ref(path) { return new ReferenceCompat(path, this); }
             }
-
-
-            firebase.database = function(app) {
-                return new DatabaseCompat(app || firebase.app());
-            };
+            firebase.database = function(app) { return new DatabaseCompat(app); };
         })();
         // 3. Инициализация твоей личной базы данных PULSE
         const firebaseConfig = {
@@ -808,67 +750,34 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Поиск элементов на экране
+        // Поиск элементов на экране (Очищено от старого сайдбара)
         const authScreen = document.getElementById('auth-screen');
         const appScreen = document.getElementById('app-screen');
         const usernameInput = document.getElementById('email-input');
         const passwordInput = document.getElementById('password-input');
         const loginBtn = document.getElementById('login-btn');
         const registerBtn = document.getElementById('register-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const userDisplayName = document.getElementById('user-display-name');
-        const chatMessages = document.getElementById('chat-messages');
-        const messageForm = document.getElementById('message-form');
-        const messageInput = document.getElementById('message-input');
-        const avatarPlug = document.querySelector('.avatar-plug');
+        const logoutBtn = document.getElementById('link-logout'); 
+        const userDisplayName = document.getElementById('prof-name'); 
+        const messageForm = document.getElementById('post-form'); 
+        const messageInput = document.getElementById('post-text-input');
+        const avatarPlug = document.getElementById('prof-avatar'); 
         const authStatus = document.getElementById('auth-status');
 
         let currentUserName = localStorage.getItem('pulse_user') || null;
 
-        // Показ ошибок прямо на форме входа без alert
         function showMsg(text, type) {
             authStatus.textContent = text;
             authStatus.className = type === 'error' ? 'status-error' : 'status-success';
             setTimeout(() => { authStatus.textContent = ''; }, 4000);
         }
 
-                // Логика плавного переключения нижнего меню (Dock)
-        const dockItems = document.querySelectorAll('.dock-item:not(.logout-item)');
-        const pageSections = document.querySelectorAll('.page-section');
-
-        dockItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                
-                // Убираем активный класс у всех кнопок меню
-                dockItems.forEach(i => i.classList.remove('active'));
-                // Добавляем нажатой кнопке
-                item.classList.add('active');
-
-                // Скрываем все разделы сайта
-                pageSections.forEach(section => section.classList.add('hidden'));
-                
-                // Показываем нужный раздел по data-target атрибуту
-                const targetId = item.getAttribute('data-target');
-                const targetSection = document.getElementById(targetId);
-                if (targetSection) {
-                    targetSection.classList.remove('hidden');
-                }
-            });
-        });
-
-        // Перепривязываем старую кнопку Выйти на новую нижнюю кнопку
-        document.getElementById('link-logout').addEventListener('click', (e) => {
-            e.preventDefault();
-            currentUserName = null;
-            localStorage.removeItem('pulse_user');
-            checkAuth();
-        });
-
         function checkAuth() {
             if (currentUserName) {
-                userDisplayName.textContent = currentUserName;
+                const formattedName = currentUserName.charAt(0).toUpperCase() + currentUserName.slice(1);
+                if (userDisplayName) userDisplayName.textContent = formattedName;
                 if (avatarPlug) avatarPlug.textContent = currentUserName.charAt(0).toUpperCase();
+                
                 authScreen.classList.add('hidden');
                 appScreen.classList.remove('hidden');
                 loadMessages();
@@ -883,8 +792,9 @@
             const name = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value;
 
-            if (!name || !pass) return showMsg('Заполни имя и пароль!', 'error');
+            if (!name || !pass) return showMsg('Заполни имя и пароль, бро!', 'error');
             if (name.length < 3) return showMsg('Имя должно быть от 3 символов!', 'error');
+            if (pass.length < 4) return showMsg('Пароль должен быть от 4 символов!', 'error');
 
             try {
                 const snapshot = await db.ref(`users/${name}`).once();
@@ -898,7 +808,7 @@
                     showMsg('Вход выполнен!', 'success');
                     setTimeout(checkAuth, 500);
                 }
-            } catch (e) { showMsg('Ошибка сети: ' + e.message, 'error'); }
+            } catch (e) { showMsg('Ошибка сети!', 'error'); }
         });
 
         // ВХОД
@@ -919,54 +829,95 @@
                 } else {
                     showMsg('Неверное имя или пароль!', 'error');
                 }
-            } catch (e) { showMsg('Ошибка сети: ' + e.message, 'error'); }
+            } catch (e) { showMsg('Ошибка сети!', 'error'); }
         });
-
-        logoutBtn.addEventListener('click', () => {
-            currentUserName = null;
-            localStorage.removeItem('pulse_user');
-            checkAuth();
-        });
-
-        // ОТПРАВКА СМС
-        messageForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!messageInput.value.trim() || !currentUserName) return;
-
-            try {
-                const messagesRef = db.ref('messages');
-                await messagesRef.push({
-                    text: messageInput.value,
-                    senderName: currentUserName,
-                    timestamp: Date.now()
-                });
-                messageInput.value = '';
-            } catch (error) { console.error("Ошибка при отправке: ", error); }
-        });
-
-        // ОНЛАЙН ОБНОВЛЕНИЕ ПЕРЕПИСКИ
-        function loadMessages() {
-            db.ref('messages').on('value', (snapshot) => {
-                chatMessages.innerHTML = '';
-                const data = snapshot.val();
-                if (!data) return;
-
-                Object.keys(data).forEach((key) => {
-                    const msgData = data[key];
-                    const isMe = msgData.senderName === currentUserName;
-                    const messageElement = document.createElement('div');
-                    messageElement.classList.add('msg', isMe ? 'outgoing' : 'incoming');
-                    
-                    messageElement.innerHTML = `
-                        <span class="sender">${isMe ? 'Ты' : msgData.senderName}</span>
-                        <p>${msgData.text}</p>
-                    `;
-                    chatMessages.appendChild(messageElement);
-                });
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentUserName = null;
+                localStorage.removeItem('pulse_user');
+                checkAuth();
             });
         }
 
+        // Логика плавного переключения нижнего меню (Dock)
+        const dockItems = document.querySelectorAll('.dock-item:not(.logout-item)');
+        const pageSections = document.querySelectorAll('.page-section');
+
+        dockItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Убираем активную подсветку у всех кнопок
+                dockItems.forEach(i => i.classList.remove('active'));
+                // Подсвечиваем нажатую
+                item.classList.add('active');
+
+                // Прячем все экраны
+                pageSections.forEach(section => section.classList.add('hidden'));
+                
+                // Включаем нужный экран по кнопке
+                const targetId = item.getAttribute('data-target');
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.classList.remove('hidden');
+                }
+            });
+        });
+
+        // ОТПРАВКА ИМПУЛЬСА (ПОСТА) НА СТЕНУ
+        if (messageForm) {
+            messageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!messageInput.value.trim() || !currentUserName) return;
+
+                try {
+                    const messagesRef = db.ref('messages');
+                    await messagesRef.push({
+                        text: messageInput.value,
+                        senderName: currentUserName,
+                        timestamp: Date.now()
+                    });
+                    messageInput.value = '';
+                } catch (error) { console.error("Ошибка при отправке: ", error); }
+            });
+        }
+
+        // ЗАГРУЗКА ВИБРАЦИЙ (ПОСТОВ) НА СТЕНУ
+        function loadMessages() {
+            const wallFeed = document.getElementById('profile-wall-posts');
+            if (!wallFeed) return;
+
+            db.ref('messages').on('value', (snapshot) => {
+                wallFeed.innerHTML = '';
+                const data = snapshot.val();
+                if (!data) return;
+
+                // Перебираем посты и кидаем их на стену
+                Object.keys(data).forEach((key) => {
+                    const msgData = data[key];
+                    const postElement = document.createElement('div');
+                    
+                    // Стилизуем карточки постов прямо в коде для надежности
+                    postElement.style.background = 'var(--panel-bg)';
+                    postElement.style.border = '1px solid var(--border-color)';
+                    postElement.style.padding = '20px';
+                    postElement.style.borderRadius = '16px';
+                    postElement.style.marginBottom = '15px';
+                    postElement.style.backdropFilter = 'blur(10px)';
+                    
+                    const name = msgData.senderName.charAt(0).toUpperCase() + msgData.senderName.slice(1);
+                    
+                    postElement.innerHTML = `
+                        <strong style="color: var(--neon-cyan); display:block; margin-bottom:8px; font-weight:700;">${name}</strong>
+                        <p style="color: var(--text-main); font-size:15px; line-height:1.4;">${msgData.text}</p>
+                    `;
+                    // Свежие посты летят наверх, как на стене ВК
+                    wallFeed.insertBefore(postElement, wallFeed.firstChild);
+                });
+            });
+        }
+
+        // Первоначальный запуск системы контроля
         checkAuth();
     </script>
 </body>
