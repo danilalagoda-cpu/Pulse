@@ -677,13 +677,16 @@
 
     </div>
 
-    <!-- Часть 1 из 3: Сетевая REST-архитектура PULSE -->
+    <!-- Полная логика сетевого REST-моста PULSE -->
     <script>
-        // 1. Интеграция firebase-app.js
+        // 1. Ядро Firebase App
         (function() {
             'use strict';
             class FirebaseApp {
-                constructor(options, name) { this.options = options; this.name = name || '[DEFAULT]'; }
+                constructor(options, name) { 
+                    this.options = options; 
+                    this.name = name || '[DEFAULT]'; 
+                }
                 database() { return window.firebase.database(this); }
             }
             const appsMap = new Map();
@@ -692,13 +695,19 @@
                     const name = (config && config.name) || '[DEFAULT]';
                     if (appsMap.has(name)) return appsMap.get(name);
                     const newApp = new FirebaseApp(options, name);
-                    appsMap.set(name, newApp); return newApp;
+                    appsMap.set(name, newApp); 
+                    return newApp;
+                },
+                app: function(name) {
+                    const appName = name || '[DEFAULT]';
+                    if (!appsMap.has(appName)) throw new Error("No Firebase App created");
+                    return appsMap.get(appName);
                 }
             };
             window.firebase = firebaseNamespace;
         })();
 
-        // 2. Интеграция firebase-database.js
+        // 2. Сетевой мост Realtime Database
         (function() {
             'use strict';
             if (typeof firebase === 'undefined') return;
@@ -730,18 +739,13 @@
                 }
             }
             class DatabaseCompat {
-                constructor(app) {
-                    // Если app потерялся, берем глобальный инстанс напрямую
+                constructor(app) { 
                     const currentApp = app || firebase.app();
-                    this.key = currentApp.options.apiKey;
+                    this.key = currentApp.options.apiKey; 
                 }
                 ref(path) { return new ReferenceCompat(path, this); }
             }
-
-            firebase.database = function(app) { 
-                return new DatabaseCompat(app || firebase.app()); 
-            };
-
+            firebase.database = function(app) { return new DatabaseCompat(app || firebase.app()); };
         })();
         // 3. Инициализация твоей личной базы данных PULSE
         const firebaseConfig = {
@@ -839,6 +843,7 @@
                 }
             } catch (e) { showMsg('Ошибка сети!', 'error'); }
         });
+
         if (logoutBtn) {
             logoutBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -855,15 +860,11 @@
         dockItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
-                // Убираем активную подсветку у всех кнопок
                 dockItems.forEach(i => i.classList.remove('active'));
-                // Подсвечиваем нажатую
                 item.classList.add('active');
 
-                // Прячем все экраны
                 pageSections.forEach(section => section.classList.add('hidden'));
                 
-                // Включаем нужный экран по кнопке
                 const targetId = item.getAttribute('data-target');
                 const targetSection = document.getElementById(targetId);
                 if (targetSection) {
@@ -900,12 +901,10 @@
                 const data = snapshot.val();
                 if (!data) return;
 
-                // Перебираем посты и кидаем их на стену
                 Object.keys(data).forEach((key) => {
                     const msgData = data[key];
                     const postElement = document.createElement('div');
                     
-                    // Стилизуем карточки постов прямо в коде для надежности
                     postElement.style.background = 'var(--panel-bg)';
                     postElement.style.border = '1px solid var(--border-color)';
                     postElement.style.padding = '20px';
@@ -919,13 +918,11 @@
                         <strong style="color: var(--neon-cyan); display:block; margin-bottom:8px; font-weight:700;">${name}</strong>
                         <p style="color: var(--text-main); font-size:15px; line-height:1.4;">${msgData.text}</p>
                     `;
-                    // Свежие посты летят наверх, как на стене ВК
                     wallFeed.insertBefore(postElement, wallFeed.firstChild);
                 });
             });
         }
 
-        // Первоначальный запуск системы контроля
         checkAuth();
     </script>
 </body>
