@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -362,12 +362,13 @@
             </form>
         </main>
     </div>
-    <!-- Официальная логика Realtime Database для хостинга (Без alert) -->
+    <!-- Новая логика Realtime Database для хостинга GitHub через cdnjs -->
     <script type="module">
-        import { initializeApp } from "https://gstatic.com";
-        import { getDatabase, ref, set, get, child, push, onValue } from "https://gstatic.com";
+        // Импортируем сборку Firebase v9/v10 через cdnjs (полная поддержка CORS для GitHub Pages)
+        import { initializeApp } from "https://cloudflare.com";
+        import { getDatabase, ref, set, get, child, push, onValue } from "https://cloudflare.com";
 
-        // Твоя конфигурация Firebase
+        // Твоя рабочая конфигурация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyADDpr8MTqi33HmM8mN2b2r-CB9bCRPy4c",
             authDomain: "://firebaseapp.com",
@@ -398,13 +399,11 @@
 
         let currentUserName = localStorage.getItem('pulse_user') || null;
 
-        // Встроенный вывод статуса вместо alert
         function showMsg(text, type) {
             authStatus.textContent = text;
             authStatus.className = type === 'error' ? 'status-error' : 'status-success';
             setTimeout(() => { authStatus.textContent = ''; }, 4000);
         }
-
         function checkAuth() {
             if (currentUserName) {
                 userDisplayName.textContent = currentUserName;
