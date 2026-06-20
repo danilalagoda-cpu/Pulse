@@ -362,13 +362,12 @@
             </form>
         </main>
     </div>
-    <!-- Новая логика Realtime Database для хостинга GitHub через cdnjs -->
-    <script type="module">
-        // Импортируем сборку Firebase v9/v10 через cdnjs (полная поддержка CORS для GitHub Pages)
-        import { initializeApp } from "https://cloudflare.com";
-        import { getDatabase, ref, set, get, child, push, onValue } from "https://cloudflare.com";
+    <!-- Подключаем Firebase через обычные глобальные скрипты (Защита от CORS) -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
 
-        // Твоя рабочая конфигурация Firebase
+    <script>
+        // Твоя конфигурация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyADDpr8MTqi33HmM8mN2b2r-CB9bCRPy4c",
             authDomain: "://firebaseapp.com",
@@ -380,9 +379,11 @@
             databaseURL: "https://firebasedatabase.app"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        // Инициализируем базу данных через совместимый синтаксис
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
+        // Привязываем элементы интерфейса
         const authScreen = document.getElementById('auth-screen');
         const appScreen = document.getElementById('app-screen');
         const usernameInput = document.getElementById('email-input');
@@ -399,6 +400,7 @@
 
         let currentUserName = localStorage.getItem('pulse_user') || null;
 
+        // Плавный вывод статуса вместо alert
         function showMsg(text, type) {
             authStatus.textContent = text;
             authStatus.className = type === 'error' ? 'status-error' : 'status-success';
@@ -417,7 +419,7 @@
             }
         }
 
-        // РЕГИСТРАЦИЯ
+        // РЕГИСТРАЦИЯ ПО ИМЕНИ
         registerBtn.addEventListener('click', async () => {
             const name = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value;
@@ -426,22 +428,21 @@
             if (name.length < 3) return showMsg('Имя должно быть от 3 символов!', 'error');
 
             try {
-                const dbRef = ref(db);
-                const snapshot = await get(child(dbRef, `users/${name}`));
+                const snapshot = await db.ref(`users/${name}`).get();
 
                 if (snapshot.exists()) {
                     showMsg('Это имя уже занято!', 'error');
                 } else {
-                    await set(ref(db, `users/${name}`), { password: pass });
+                    await db.ref(`users/${name}`).set({ password: pass });
                     currentUserName = name;
                     localStorage.setItem('pulse_user', name);
                     showMsg('Вход выполнен!', 'success');
                     setTimeout(checkAuth, 500);
                 }
-            } catch (e) { showMsg('Ошибка: ' + e.message, 'error'); }
+            } catch (e) { showMsg('Ошибка записи: ' + e.message, 'error'); }
         });
 
-        // ВХОД
+        // ВХОД ПО ИМЕНИ
         loginBtn.addEventListener('click', async () => {
             const name = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value;
@@ -449,8 +450,7 @@
             if (!name || !pass) return showMsg('Введи имя и пароль!', 'error');
 
             try {
-                const dbRef = ref(db);
-                const snapshot = await get(child(dbRef, `users/${name}`));
+                const snapshot = await db.ref(`users/${name}`).get();
 
                 if (snapshot.exists() && snapshot.val().password === pass) {
                     currentUserName = name;
@@ -460,7 +460,7 @@
                 } else {
                     showMsg('Неверное имя или пароль!', 'error');
                 }
-            } catch (e) { showMsg('Ошибка: ' + e.message, 'error'); }
+            } catch (e) { showMsg('Ошибка входа: ' + e.message, 'error'); }
         });
 
         logoutBtn.addEventListener('click', () => {
@@ -468,16 +468,15 @@
             localStorage.removeItem('pulse_user');
             checkAuth();
         });
-
         // ОТПРАВКА СООБЩЕНИЯ
         messageForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!messageInput.value.trim() || !currentUserName) return;
 
             try {
-                const messagesRef = ref(db, 'messages');
-                const newMessageRef = push(messagesRef);
-                await set(newMessageRef, {
+                const messagesRef = db.ref('messages');
+                const newMessageRef = messagesRef.push();
+                await newMessageRef.set({
                     text: messageInput.value,
                     senderName: currentUserName,
                     timestamp: Date.now()
@@ -486,10 +485,10 @@
             } catch (error) { console.error("Ошибка при отправке: ", error); }
         });
 
-        // СТРИМИНГ СООБЩЕНИЙ
+        // СТРИМИНГ СООБЩЕНИЙ В РЕАЛЬНОМ ВРЕМЕНИ
         function loadMessages() {
-            const messagesRef = ref(db, 'messages');
-            onValue(messagesRef, (snapshot) => {
+            const messagesRef = db.ref('messages');
+            messagesRef.on('value', (snapshot) => {
                 chatMessages.innerHTML = '';
                 snapshot.forEach((childSnapshot) => {
                     const data = childSnapshot.val();
@@ -509,7 +508,9 @@
             });
         }
 
+        // Запуск проверки авторизации при старте
         checkAuth();
     </script>
 </body>
 </html>
+
