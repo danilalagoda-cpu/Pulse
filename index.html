@@ -288,6 +288,285 @@
             from { opacity: 0; transform: translateY(20px) scale(0.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
+
+                /* Общий контейнер контента */
+        .content-area {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            background: rgba(4, 4, 6, 0.2);
+        }
+
+        .page-section {
+            max-width: 900px;
+            margin: 0 auto;
+            animation: fadeIn 0.4s ease;
+        }
+
+        /* Карточка Профиля */
+        .profile-card {
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .profile-main-info {
+            display: flex;
+            gap: 35px;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 30px;
+            margin-bottom: 25px;
+        }
+
+        .profile-avatar-zone {
+            text-align: center;
+        }
+
+        .user-avatar {
+            width: 110px;
+            height: 110px;
+            background: var(--pulse-gradient);
+            border-radius: 32px; /* Фирменная фишка: не круглые, а стильные закругленные квадраты */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            font-weight: 900;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 0 30px rgba(121, 40, 202, 0.3);
+        }
+
+        .btn-edit-avatar {
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-edit-avatar:hover { color: var(--neon-cyan); }
+
+        .profile-text-zone h1 {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        /* Инпут статуса прямо в тексте */
+        #prof-status-input {
+            background: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 15px;
+            width: 100%;
+        }
+        #prof-status-input:focus {
+            color: var(--text-main);
+            box-shadow: none;
+            border-bottom: 1px solid var(--neon-cyan);
+        }
+
+        .profile-link {
+            font-size: 13px;
+            color: var(--neon-pink);
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* Статистика */
+        .profile-stats {
+            display: flex;
+            gap: 50px;
+        }
+
+        .stat-box h5 {
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-box span {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--neon-cyan);
+        }
+
+        /* Создание Поста */
+        .create-post-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .create-post-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #a0a5b5;
+        }
+
+        textarea {
+            width: 100%;
+            height: 90px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            font-size: 15px;
+            resize: none;
+            transition: 0.3s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(121, 40, 202, 0.2);
+        }
+
+        .post-form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .post-attach-btn {
+            font-size: 13px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .post-attach-btn:hover { color: var(--text-main); }
+
+        .btn-pulse-post {
+            padding: 12px 25px;
+            background: var(--pulse-gradient);
+            color: white;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+                /* Перестраиваем главный экран */
+        #app-screen {
+            flex-direction: column;
+            position: relative;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Контентная зона на весь экран с отступом снизу под меню */
+        .content-area {
+            flex: 1;
+            width: 100%;
+            padding: 40px 40px 120px 40px; /* 120px снизу, чтобы меню не перекрывало контент */
+            overflow-y: auto;
+            background: transparent;
+        }
+
+        /* Контейнер для нижнего меню */
+        .bottom-dock-container {
+            position: absolute;
+            bottom: 25px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            pointer-events: none; /* Чтобы сквозь пустую зону можно было кликать */
+            z-index: 999;
+        }
+
+        /* Парящая док-панель */
+        .bottom-dock {
+            pointer-events: auto; /* Возвращаем кликабельность кнопкам */
+            display: flex;
+            gap: 15px;
+            background: rgba(13, 14, 24, 0.75);
+            backdrop-filter: blur(30px);
+            padding: 10px 25px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 
+                        0 0 30px rgba(121, 40, 202, 0.15);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Элемент меню */
+        .dock-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #a0a5b5;
+            width: 75px;
+            height: 65px;
+            border-radius: 16px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dock-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+            transition: transform 0.25s ease;
+        }
+
+        .dock-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.6;
+            transition: opacity 0.25s ease;
+        }
+
+        /* Эффекты при наведении: кнопка плавно приподнимается */
+        .dock-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.03);
+            transform: translateY(-8px);
+        }
+        .dock-item:hover .dock-icon {
+            transform: scale(1.15);
+        }
+
+        /* Активный пункт (куда нажали) */
+        .dock-item.active {
+            background: var(--pulse-gradient);
+            color: #fff;
+            box-shadow: 0 10px 20px rgba(255, 0, 127, 0.25),
+                        0 0 15px rgba(0, 243, 255, 0.2);
+        }
+        .dock-item.active .dock-label {
+            opacity: 1;
+        }
+
+        /* Кнопка выхода */
+        .logout-item:hover {
+            background: rgba(255, 0, 127, 0.15);
+            color: var(--neon-pink);
+        }
+
+        /* Мини-логотип внутри профиля */
+        .logo-mini {
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+
     </style>
 </head>
 <body>
@@ -310,46 +589,94 @@
         </div>
     </div>
 
-    <!-- Главный экран соцсети -->
+        <!-- Главный экран соцсети с нижним меню -->
     <div id="app-screen" class="screen hidden">
-        <aside class="sidebar">
-            <div class="logo">PULSE<span class="dot">.</span></div>
-            <nav>
-                <a href="#" class="active">⚡ Чат-Комната</a>
-                <a href="#">👤 Мой Пульс</a>
-                <a href="#">👥 Друзья</a>
-            </nav>
-            <div class="user-profile">
-                <div class="user-info">
-                    <div class="avatar-plug">P</div>
-                    <span id="user-display-name">Пользователь</span>
+        
+        <!-- Верхняя контентная зона (теперь на всю ширину) -->
+        <main class="content-area">
+            
+            <!-- РАЗДЕЛ 1: МОЙ ПУЛЬС (ПРОФИЛЬ) -->
+            <div id="page-profile" class="page-section">
+                <!-- Карточка Профиля -->
+                <div class="profile-card">
+                    <div class="profile-main-info">
+                        <div class="profile-avatar-zone">
+                            <div class="user-avatar" id="prof-avatar">P</div>
+                            <button class="btn-edit-avatar">⚡ Сменить код</button>
+                        </div>
+                        <div class="profile-text-zone">
+                            <div class="logo-mini">PULSE<span class="dot">.</span></div>
+                            <h1 id="prof-name">Загрузка...</h1>
+                            <div class="profile-status-wrapper">
+                                <input type="text" id="prof-status-input" value="Настроить частоту пульса..." placeholder="Твой статус">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Твои показатели в сети -->
+                    <div class="profile-stats">
+                        <div class="stat-box"><h5>Синхронизации</h5><span id="stat-friends">0</span></div>
+                        <div class="stat-box"><h5>Вибрации</h5><span id="stat-posts">0</span></div>
+                        <div class="stat-box"><h5>Треки</h5><span id="stat-tracks">0</span></div>
+                    </div>
                 </div>
-                <button id="logout-btn" class="btn-logout">Выйти</button>
-            </div>
-        </aside>
 
-        <main class="chat-container">
-            <div class="chat-header">
-                <div class="header-info">
-                    <h3>Основной Канал</h3>
-                    <div class="online-status">
-                        <span class="pulse-dot"></span>
-                        <span class="status-text">сеть пульсирует</span>
+                <!-- Стена постов -->
+                <div class="wall-section">
+                    <div class="create-post-card">
+                        <h3>Запустить новую вибрацию в сеть</h3>
+                        <form id="post-form">
+                            <textarea id="post-text-input" placeholder="Что у тебя на уме, бро? Напиши что-нибудь..." required></textarea>
+                            <div class="post-form-footer">
+                                <div class="post-attach-btn">➕ Добавить медиа</div>
+                                <button type="submit" class="btn-pulse-post">Импульс ⚡</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div id="profile-wall-posts" class="posts-feed">
+                        <!-- Посты -->
                     </div>
                 </div>
             </div>
-            
-            <div id="chat-messages" class="messages-area"></div>
 
-            <form id="message-form" class="message-input-area">
-                <input type="text" id="message-input" placeholder="Напиши что-нибудь..." autocomplete="off" required>
-                <button type="submit" class="btn-send">
-                    <span>Отправить</span>
-                    <svg viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/></svg>
-                </button>
-            </form>
+            <!-- РАЗДЕЛ 2: СООБЩЕНИЯ (Заглушка, её наполним следующим шагом) -->
+            <div id="page-messages" class="page-section hidden">
+                <div class="profile-card">
+                    <h2>Твои Диалоги</h2>
+                    <p style="color: var(--text-muted); margin-top: 10px;">Раздел сообщений в разработке...</p>
+                </div>
+            </div>
+
         </main>
+
+        <!-- 🌌 НАШЕ НОВОЕ НИЖНЕЕ МЕНЮ (DOCK-ПАНЕЛЬ) -->
+        <div class="bottom-dock-container">
+            <nav class="bottom-dock">
+                <a href="#" id="link-profile" class="dock-item active" data-target="page-profile">
+                    <span class="dock-icon">👤</span>
+                    <span class="dock-label">Мой Пульс</span>
+                </a>
+                <a href="#" id="link-news" class="dock-item" data-target="page-news">
+                    <span class="dock-icon">📰</span>
+                    <span class="dock-label">Лента</span>
+                </a>
+                <a href="#" id="link-messages" class="dock-item" data-target="page-messages">
+                    <span class="dock-icon">💬</span>
+                    <span class="dock-label">Сообщения</span>
+                </a>
+                <a href="#" id="link-music" class="dock-item" data-target="page-music">
+                    <span class="dock-icon">🎵</span>
+                    <span class="dock-label">Музыка</span>
+                </a>
+                <a href="#" id="link-logout" class="dock-item logout-item">
+                    <span class="dock-icon">🚪</span>
+                    <span class="dock-label">Выйти</span>
+                </a>
+            </nav>
+        </div>
+
     </div>
+
     <!-- Наш собственный сетевой мост Firebase (REST API) -->
     <script>
         // 1. Интеграция firebase-app.js
@@ -504,6 +831,39 @@
             authStatus.className = type === 'error' ? 'status-error' : 'status-success';
             setTimeout(() => { authStatus.textContent = ''; }, 4000);
         }
+
+                // Логика плавного переключения нижнего меню (Dock)
+        const dockItems = document.querySelectorAll('.dock-item:not(.logout-item)');
+        const pageSections = document.querySelectorAll('.page-section');
+
+        dockItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Убираем активный класс у всех кнопок меню
+                dockItems.forEach(i => i.classList.remove('active'));
+                // Добавляем нажатой кнопке
+                item.classList.add('active');
+
+                // Скрываем все разделы сайта
+                pageSections.forEach(section => section.classList.add('hidden'));
+                
+                // Показываем нужный раздел по data-target атрибуту
+                const targetId = item.getAttribute('data-target');
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.classList.remove('hidden');
+                }
+            });
+        });
+
+        // Перепривязываем старую кнопку Выйти на новую нижнюю кнопку
+        document.getElementById('link-logout').addEventListener('click', (e) => {
+            e.preventDefault();
+            currentUserName = null;
+            localStorage.removeItem('pulse_user');
+            checkAuth();
+        });
 
         function checkAuth() {
             if (currentUserName) {
