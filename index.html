@@ -730,10 +730,18 @@
                 }
             }
             class DatabaseCompat {
-                constructor(app) { this.key = app.options.apiKey; }
+                constructor(app) {
+                    // Если app потерялся, берем глобальный инстанс напрямую
+                    const currentApp = app || firebase.app();
+                    this.key = currentApp.options.apiKey;
+                }
                 ref(path) { return new ReferenceCompat(path, this); }
             }
-            firebase.database = function(app) { return new DatabaseCompat(app); };
+
+            firebase.database = function(app) { 
+                return new DatabaseCompat(app || firebase.app()); 
+            };
+
         })();
         // 3. Инициализация твоей личной базы данных PULSE
         const firebaseConfig = {
