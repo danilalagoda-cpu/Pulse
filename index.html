@@ -454,16 +454,13 @@
 
             class DatabaseCompat {
                 constructor(app) {
-                    // Просто берем твой databaseURL целиком, без обрезки поддомена
-                    this.url = app.options.databaseURL;
-                    // Отрезаем слеш на конце, если он есть, вручную и безопасно
-                    if (this.url.endsWith('/')) {
-                        this.url = this.url.slice(0, -1);
-                    }
+                    // Просто берем твою ссылку целиком, без всяких replace
+                    this.url = "https://pulse-66146-default-rtdb.europe-west1.firebasedatabase.app";
                     this.key = app.options.apiKey;
                 }
                 ref(path) { return new ReferenceCompat(path, this); }
             }
+
 
             firebase.database = function(app) {
                 return new DatabaseCompat(app || firebase.app());
@@ -526,7 +523,7 @@
             const name = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value;
 
-            if (!name || !pass) return showMsg('Заполни имя и пароль, бро!', 'error');
+            if (!name || !pass) return showMsg('Заполни имя и пароль!', 'error');
             if (name.length < 3) return showMsg('Имя должно быть от 3 символов!', 'error');
 
             try {
