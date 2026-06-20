@@ -454,7 +454,12 @@
 
             class DatabaseCompat {
                 constructor(app) {
-                    this.url = app.options.databaseURL.replace(/\/$/, '');
+                    // Просто берем твой databaseURL целиком, без обрезки поддомена
+                    this.url = app.options.databaseURL;
+                    // Отрезаем слеш на конце, если он есть, вручную и безопасно
+                    if (this.url.endsWith('/')) {
+                        this.url = this.url.slice(0, -1);
+                    }
                     this.key = app.options.apiKey;
                 }
                 ref(path) { return new ReferenceCompat(path, this); }
