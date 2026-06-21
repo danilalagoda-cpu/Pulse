@@ -717,10 +717,16 @@
                 exists() { return this._value !== null && this._value !== undefined; }
             }
             class ReferenceCompat {
-                constructor(path, dbRef) { this.path = path || ''; this.db = dbRef; }
-                child(childPath) { return new ReferenceCompat(this.path + '/' + childPath, this.db); }
+                constructor(path, dbRef) { 
+                    this.path = path || ''; 
+                    this.db = dbRef; 
+                }
+                child(childPath) { 
+                    return new ReferenceCompat(this.path + '/' + childPath, this.db); 
+                }
                 getURL() {
-                    const base = "https://firebasedatabase.app";
+                    // НАМЕРТВО ЗАШИВАЕМ ТВОЙ URL: Теперь никакой старый код не сможет его стереть!
+                    const base = "https://pulse-66146-default-rtdb.europe-west1.firebasedatabase.app";
                     return base + '/' + this.path + '.json?auth=' + this.db.key;
                 }
                 set(value) { return fetch(this.getURL(), { method: 'PUT', body: JSON.stringify(value) }).then(r => r.json()); }
@@ -738,6 +744,7 @@
                     return callback;
                 }
             }
+
             class DatabaseCompat {
                 constructor(app) { 
                     const currentApp = app || firebase.app();
@@ -750,17 +757,18 @@
         // 3. Инициализация твоей личной базы данных PULSE
         const firebaseConfig = {
             apiKey: "AIzaSyADDpr8MTqi33HmM8mN2b2r-CB9bCRPy4c",
-            authDomain: "://firebaseapp.com",
+            authDomain: "pulse-66146.firebaseapp.com", // ИСПРАВЛЕНО (добавлено имя проекта, убрано "://")
             projectId: "pulse-66146",
             storageBucket: "pulse-66146.firebasestorage.app",
             messagingSenderId: "346611623663",
             appId: "1:346611623663:web:d7b319b063da543ed1dd1a",
             measurementId: "G-3FXVBG5PJT",
-            databaseURL: "https://firebasedatabase.app"
+            databaseURL: "https://pulse-66146-default-rtdb.europe-west1.firebasedatabase.app" // ИСПРАВЛЕНО (ваш точный URL)
         };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
 
         // Поиск элементов на экране (Очищено от старого сайдбара)
         const authScreen = document.getElementById('auth-screen');
