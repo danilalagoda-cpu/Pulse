@@ -1027,6 +1027,36 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+                // --- САМЫЙ ВЕРХ ВАШЕГО ТЕГА <SCRIPT> ---
+
+        // Глобальная функция кастомного окна ошибки (Замена запрещенного alert)
+        function showErrorModal(title, text) {
+            // Проверяем, нет ли уже открытого оверлея, чтобы не плодить окна
+            const existingOverlay = document.querySelector('.pulse-modal-overlay');
+            if (existingOverlay) existingOverlay.remove();
+
+            const overlay = document.createElement('div');
+            overlay.className = 'pulse-modal-overlay';
+    
+            overlay.innerHTML = `
+                <div class="pulse-modal">
+                    <h4>${title}</h4>
+                    <p>${text}</p>
+                    <button class="btn-modal-close" id="modal-close-btn">Закрыть</button>
+                </div>
+            `;
+    
+            document.body.appendChild(overlay);
+    
+            const closeBtn = overlay.querySelector('#modal-close-btn');
+            closeBtn.onclick = function() {
+                overlay.remove();
+            };
+    
+            overlay.onclick = function(e) {
+                if (e.target === overlay) overlay.remove();
+            };
+        }
 
         // Поиск элементов на экране (Очищено от старого сайдбара)
         const authScreen = document.getElementById('auth-screen');
@@ -1110,18 +1140,16 @@
             } catch (e) { showMsg('Ошибка сети!', 'error'); }
         });
 
-        // Обработчик кнопки выхода с кастомным подтверждением
+        // Надежный обработчик кнопки выхода с жестким переключением экранов
         if (logoutBtn) {
             logoutBtn.onclick = function(e) {
-                e.preventDefault(); // Блокируем мгновенный переход/выход
+                e.preventDefault(); // Блокируем стандартное поведение ссылки
 
-                // Создаем оверлей для окна подтверждения
                 const confirmOverlay = document.createElement('div');
                 confirmOverlay.className = 'pulse-modal-overlay';
         
-                // Рендерим структуру окна с двумя кнопками (Без алертов!)
                 confirmOverlay.innerHTML = `
-                    <div class="pulse-modal" style="border-color: rgba(0, 243, 255, 0.2); box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);">
+                    <div class="pulse-modal" style="border-color: rgba(0, 243, 255, 0.2); box-shadow: 0 0 30px rgba(121, 40, 202, 0.15);">
                         <h4 style="color: var(--neon-blue);">Завершение сессии</h4>
                         <p>Вы уверены, что хотите выйти из аккаунта PULSE?</p>
                         <div style="display: flex; gap: 12px; justify-content: center;">
@@ -1133,31 +1161,36 @@
         
                 document.body.appendChild(confirmOverlay);
         
-                // Логика кнопки "Да, выйти"
+                // Логика подтверждения выхода
                 confirmOverlay.querySelector('#logout-confirm-yes').onclick = function() {
                     confirmOverlay.remove();
             
-                    // --- ТУТ ВАШ ТЕКУЩИЙ КОД ВЫХОДА ---
-                    // Например, очистка сессии и переключение экрана:
-                    // localStorage.removeItem('currentUser'); 
-                    // document.getElementById('app-screen').classList.add('hidden');
-                    // document.getElementById('auth-screen').classList.remove('hidden');
+                    // 1. Полностью очищаем данные текущей сессии из браузера
+                    localStorage.removeItem('currentUserUsername');
+                    localStorage.removeItem('currentUser'); // Очищаем токен или объект, если он есть
             
-                    // Для теста просто перезагрузим страницу или вызовем ваш дефолтный логаут:
-                    location.reload(); 
+                    // 2. Жестко переключаем видимость экранов, чтобы они не склеивались
+                    const appScreen = document.getElementById('app-screen');
+                    const authScreen = document.getElementById('auth-screen');
+            
+                    if (appScreen) appScreen.classList.add('hidden');
+                    if (authScreen) authScreen.classList.remove('hidden');
+            
+                    // На всякий случай сбрасываем хэш в URL адресе
+                    window.location.hash = '';
                 };
         
-                // Логика кнопки "Отмена"
+                // Логика отмены
                 confirmOverlay.querySelector('#logout-confirm-no').onclick = function() {
                     confirmOverlay.remove();
                 };
         
-                // Закрытие по клику на область вокруг окна
                 confirmOverlay.onclick = function(event) {
                     if (event.target === confirmOverlay) confirmOverlay.remove();
                 };
             };
         }
+
 
 
         // Логика плавного переключения нижнего меню (Dock)
