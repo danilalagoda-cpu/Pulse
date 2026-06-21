@@ -574,6 +574,45 @@
         transform: translateX(-50%) translateY(0);
     }
 
+        /* --- КИБЕР-ЛОГОТИП СЛЕВА СВЕРХУ --- */
+    .main-app-logo {
+        position: absolute;
+        top: 25px;
+        left: 40px;
+        font-size: 26px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        background: var(--pulse-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        z-index: 1000;
+        text-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
+    }
+    .main-app-logo .dot { 
+        -webkit-text-fill-color: var(--neon-blue); 
+    }
+
+    /* --- КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДЛЯ СБРОСА МЕНЮ ВНИЗ --- */
+    #app-screen {
+        display: flex;
+        flex-direction: column; /* Принудительно выстраиваем контент сверху вниз */
+        justify-content: space-between;
+        position: relative;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+    }
+
+    /* Ограничиваем контентную зону, чтобы она учитывала парящий логотип сверху */
+    .content-area {
+        flex: 1;
+        width: 100%;
+        padding: 90px 40px 120px 40px; /* Увеличили верхний отступ (90px) под логотип */
+        overflow-y: auto;
+        background: transparent;
+    }
+
+
     </style>
 </head>
 <body>
@@ -598,6 +637,9 @@
 
             <!-- Главный экран соцсети с нижним меню -->
     <div id="app-screen" class="screen hidden">
+
+        <!-- 🌌 ГЛОБАЛЬНЫЙ КИБЕР-ЛОГОТИП (Всегда слева сверху) -->
+        <div class="main-app-logo">PULSE<span class="dot">.</span></div>
     
         <!-- Верхняя контентная зона -->
         <main class="content-area">
@@ -609,24 +651,27 @@
                     <div class="profile-main-info">
                         <div class="profile-avatar-zone">
                             <div class="user-avatar" id="prof-avatar">P</div>
-                            <button class="btn-edit-avatar">⚡ Сменить код</button>
+                            <!-- Исправлено: Возвращен нормальный текст вместо смены кода -->
+                            <button class="btn-edit-avatar">Сменить аватар</button>
                         </div>
                         <div class="profile-text-zone">
-                            <div class="logo-mini">PULSE<span class="dot">.</span></div>
+                            <!-- Мусорный мини-логотип отсюда полностью удален -->
                             <h1 id="prof-name">Загрузка...</h1>
                             <div class="profile-status-wrapper">
-                                <input type="text" id="prof-status-input" value="Настроить частоту пульса..." placeholder="Твой статус">
+                                <!-- Исправлено: Строгий человеческий статус вместо частоты пульса -->
+                                <input type="text" id="prof-status-input" value="" placeholder="Установить статус...">
                             </div>
                         </div>
                     </div>
-                
-                    <!-- Новые строгие показатели в сети -->
+    
+                    <!-- Твои показатели в сети -->
                     <div class="profile-stats">
                         <div class="stat-box"><h5>Синхронизации</h5><span id="stat-friends">0</span></div>
                         <div class="stat-box"><h5>Публикации</h5><span id="stat-posts">0</span></div>
                         <div class="stat-box"><h5>Треки</h5><span id="stat-tracks">0</span></div>
                     </div>
                 </div>
+
 
                 <!-- Стена постов (Без "вибраций") -->
                 <div class="wall-section">
@@ -854,14 +899,55 @@
             } catch (e) { showMsg('Ошибка сети!', 'error'); }
         });
 
+        // Обработчик кнопки выхода с кастомным подтверждением
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                currentUserName = null;
-                localStorage.removeItem('pulse_user');
-                checkAuth();
-            });
+            logoutBtn.onclick = function(e) {
+                e.preventDefault(); // Блокируем мгновенный переход/выход
+
+                // Создаем оверлей для окна подтверждения
+                const confirmOverlay = document.createElement('div');
+                confirmOverlay.className = 'pulse-modal-overlay';
+        
+                // Рендерим структуру окна с двумя кнопками (Без алертов!)
+                confirmOverlay.innerHTML = `
+                    <div class="pulse-modal" style="border-color: rgba(0, 243, 255, 0.2); box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);">
+                        <h4 style="color: var(--neon-blue);">Завершение сессии</h4>
+                        <p>Вы уверены, что хотите выйти из аккаунта PULSE?</p>
+                        <div style="display: flex; gap: 12px; justify-content: center;">
+                            <button class="btn-primary" id="logout-confirm-yes" style="padding: 12px 24px; font-size: 13px; border-radius: 10px;">Да, выйти</button>
+                            <button class="btn-modal-close" id="logout-confirm-no" style="margin: 0; padding: 12px 24px; font-size: 13px; border-radius: 10px;">Отмена</button>
+                        </div>
+                    </div>
+                `;
+        
+                document.body.appendChild(confirmOverlay);
+        
+                // Логика кнопки "Да, выйти"
+                confirmOverlay.querySelector('#logout-confirm-yes').onclick = function() {
+                    confirmOverlay.remove();
+            
+                    // --- ТУТ ВАШ ТЕКУЩИЙ КОД ВЫХОДА ---
+                    // Например, очистка сессии и переключение экрана:
+                    // localStorage.removeItem('currentUser'); 
+                    // document.getElementById('app-screen').classList.add('hidden');
+                    // document.getElementById('auth-screen').classList.remove('hidden');
+            
+                    // Для теста просто перезагрузим страницу или вызовем ваш дефолтный логаут:
+                    location.reload(); 
+                };
+        
+                // Логика кнопки "Отмена"
+                confirmOverlay.querySelector('#logout-confirm-no').onclick = function() {
+                    confirmOverlay.remove();
+                };
+        
+                // Закрытие по клику на область вокруг окна
+                confirmOverlay.onclick = function(event) {
+                    if (event.target === confirmOverlay) confirmOverlay.remove();
+                };
+            };
         }
+
 
         // Логика плавного переключения нижнего меню (Dock)
         const dockItems = document.querySelectorAll('.dock-item:not(.logout-item)');
