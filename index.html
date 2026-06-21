@@ -612,6 +612,121 @@
         background: transparent;
     }
 
+        /* --- ЭКСТРЕННЫЙ СБРОС МЕНЮ ВНИЗ ЭКРАНА --- */
+    #app-screen {
+        display: flex !important;
+        flex-direction: column !important; /* Выстраиваем элементы строго сверху вниз */
+        justify-content: space-between !important;
+        position: relative !important;
+        height: 100vh !important;
+        width: 100vw !important;
+        overflow: hidden !important;
+    }
+
+    /* Контентная зона теперь гарантированно займет всю ширину */
+    .content-area {
+        flex: 1 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 100px 40px 120px 40px !important;
+        overflow-y: auto !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Принудительное центрирование парящей панели внизу */
+    .bottom-dock-container {
+        position: absolute !important;
+        bottom: 25px !important;
+        left: 0 !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        pointer-events: none !important;
+        z-index: 9999 !important;
+    }
+
+        /* --- НЕОНОВЫЙ СЧЕТЧИК НЕПРОЧИТАННЫХ СООБЩЕНИЙ --- */
+    .dock-badge {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: var(--neon-red);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 10px var(--neon-red), 0 0 20px rgba(255, 51, 102, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        z-index: 10;
+        animation: badgePulse 2s infinite ease-in-out;
+    }
+
+    @keyframes badgePulse {
+        0% { transform: scale(1); box-shadow: 0 0 10px var(--neon-red); }
+        50% { transform: scale(1.1); box-shadow: 0 0 18px var(--neon-red); }
+        100% { transform: scale(1); box-shadow: 0 0 10px var(--neon-red); }
+    }
+
+    /* --- СТИЛИ КАРТОЧЕК ДРУЗЕЙ И ЭЛЕМЕНТОВ ДИАЛОГОВ --- */
+
+    /* Карточка друга в сетке */
+    .friend-grid-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        transition: all 0.25s ease;
+    }
+    .friend-grid-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(0, 243, 255, 0.2);
+        box-shadow: 0 5px 15px rgba(0, 243, 255, 0.05);
+        transform: translateY(-2px);
+    }
+
+    /* Кнопка диалога в левой панели мессенджера */
+    .chat-aside-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 15px;
+        border-radius: 14px;
+        cursor: pointer;
+        margin-bottom: 5px;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+    .chat-aside-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+    .chat-aside-item.active {
+        background: rgba(121, 40, 202, 0.15);
+        border-color: rgba(0, 243, 255, 0.2);
+        box-shadow: 0 0 15px rgba(121, 40, 202, 0.1);
+    }
+
+    /* Маленький индикатор непрочитанных прямо внутри плашки диалога */
+    .chat-item-badge {
+        background: var(--neon-red);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 10px;
+        margin-left: auto;
+        box-shadow: 0 0 8px var(--neon-red);
+    }
+
 
     </style>
 </head>
@@ -639,7 +754,7 @@
     <div id="app-screen" class="screen hidden">
 
         <!-- 🌌 ГЛОБАЛЬНЫЙ КИБЕР-ЛОГОТИП (Всегда слева сверху) -->
-        <div class="main-app-logo">PULSE<span class="dot">.</span></div>
+        <div class="main-app-logo">PULSE<span class="dot"></span></div>
     
         <!-- Верхняя контентная зона -->
         <main class="content-area">
@@ -648,6 +763,10 @@
             <div id="page-profile" class="page-section">
                 <!-- Карточка Профиля -->
                 <div class="profile-card">
+
+                    <!-- ⚙️ КНОПКА-ШЕСТЕРЕНКА НАСТРОЕК (В правом верхнем углу карточки) -->
+                    <button class="btn-profile-settings" onclick="openSettingsModal()" style="position: absolute; top: 25px; right: 25px; background: transparent; color: var(--text-muted); font-size: 20px; transition: color 0.2s;" onmouseover="this.style.color='var(--neon-blue)'" onmouseout="this.style.color='var(--text-muted)'">⚙️</button>
+
                     <div class="profile-main-info">
                         <div class="profile-avatar-zone">
                             <div class="user-avatar" id="prof-avatar">P</div>
@@ -699,6 +818,92 @@
                 </div>
             </div>
 
+                        <!-- ========================================== -->
+            <!-- РАЗДЕЛ: ДРУЗЬЯ (СИНХРОНИЗАЦИИ) -->
+            <!-- ========================================== -->
+            <div id="page-friends" class="page-section hidden">
+                <div class="profile-card">
+                    <h2 style="margin-bottom: 20px; text-shadow: 0 0 10px var(--neon-blue);">Синхронизация Сети</h2>
+        
+                    <!-- Панель Кибер-Поиска -->
+                    <div class="search-users-area" style="background: rgba(0, 0, 0, 0.4); padding: 20px; border-radius: 16px; border: 1px solid var(--border-color); margin-bottom: 30px;">
+                        <h5 style="color: var(--text-muted); text-transform: uppercase; font-size: 11px; letter-spacing: 1px; margin-bottom: 10px;">Поиск пользователей по ID</h5>
+                        <div style="display: flex; gap: 12px;">
+                            <input type="text" id="friend-search-input" placeholder="Введите точное имя (username)..." style="margin: 0;">
+                            <button class="btn-primary" id="btn-search-user" style="padding: 0 25px; border-radius: 14px;">Найти</button>
+                        </div>
+                        <!-- Сюда выводится результат поиска (изначально скрыт) -->
+                        <div id="search-result-box" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span id="search-res-name" style="font-weight: 700; font-size: 16px;">Пользователь</span>
+                                <span id="search-res-username" style="color: var(--text-muted); font-size: 13px; margin-left: 8px;">@user</span>
+                            </div>
+                            <button class="btn-primary" id="btn-add-friend-action" style="padding: 10px 20px; border-radius: 10px; font-size: 13px;">Синхронизировать</button>
+                        </div>
+                    </div>
+
+                    <!-- Список уже добавленных друзей -->
+                    <h5 style="color: var(--text-muted); text-transform: uppercase; font-size: 11px; letter-spacing: 1px; margin-bottom: 15px;">Твои активные синхронизации</h5>
+                    <div id="friends-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                        <!-- Карточки друзей генерируются через JS -->
+                        <p id="no-friends-text" style="color: var(--text-muted); font-size: 14px;">Список пуст. Используйте поиск сверху, чтобы найти друзей.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- РАЗДЕЛ: СООБЩЕНИЯ (ДИАЛОГИ И ЧАТ) -->
+            <!-- ========================================== -->
+            <div id="page-messages" class="page-section hidden" style="max-width: 1100px;">
+                <!-- Двухколоночный интерфейс мессенджера -->
+                <div style="display: grid; grid-template-columns: 300px 1fr; background: var(--panel-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid var(--border-color); border-radius: 24px; height: 65vh; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+        
+                    <!-- Левая часть: Список доступных чатов -->
+                    <aside style="border-right: 1px solid var(--border-color); display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.15);">
+                        <div style="padding: 20px; font-weight: 800; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid var(--border-color); color: var(--text-muted);">Диалоги</div>
+                        <div id="chats-list-aside" style="flex: 1; overflow-y: auto; padding: 10px;">
+                            <!-- Элементы списка чатов (друзья) рендерятся через JS -->
+                            <p id="no-chats-text" style="color: var(--text-muted); font-size: 13px; text-align: center; margin-top: 20px; padding: 0 10px;">Синхронизируйте друзей во вкладке «👥», чтобы начать общение.</p>
+                        </div>
+                    </aside>
+
+                    <!-- Правая часть: Окно активной переписки -->
+                    <main id="active-chat-window" style="display: flex; flex-direction: column; height: 100%; background: rgba(2, 2, 4, 0.1);">
+                        <!-- Дефолтное состояние, когда чат не выбран -->
+                        <div id="chat-stub" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--text-muted); text-align: center; padding: 30px;">
+                            <span style="font-size: 40px; margin-bottom: 10px;">💬</span>
+                            <p>Выберите собеседника слева для подключения к каналу связи</p>
+                        </div>
+
+                        <!-- Рабочая область открытого чата (изначально скрыта) -->
+                        <div id="chat-active-body" class="screen hidden" style="height: 100%;">
+                            <!-- Шапка чата -->
+                            <div class="chat-header" style="padding: 15px 30px; display: flex; align-items: center; gap: 15px;">
+                                <div class="avatar-plug" id="chat-header-avatar" style="width: 40px; height: 40px; border-radius: 12px; font-size: 16px;">?</div>
+                                <div>
+                                    <div id="chat-header-name" style="font-weight: 700; font-size: 16px;">Собеседник</div>
+                                    <div class="online-status"><div class="pulse-dot"></div><span class="status-text">online</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Зона вывода сообщений -->
+                            <div class="messages-area" id="chat-messages-display" style="padding: 25px 30px;">
+                                <!-- Сообщения рендерятся динамически -->
+                            </div>
+
+                            <!-- Панель ввода и отправки -->
+                            <div class="message-input-area" style="padding: 15px 30px; gap: 12px;">
+                                <input type="text" id="chat-message-input" placeholder="Шифрование канала: введите сообщение..." autocomplete="off">
+                                <button class="btn-send" id="btn-send-chat-msg">
+                                    <span>ОТПРАВИТЬ</span>
+                                </button>
+                            </div>
+                        </div>
+                    </main>
+
+                </div>
+            </div>
+
         </main>
 
         <!-- 🌌 ОБНОВЛЕННОЕ МИНИМАЛИСТИЧНОЕ НИЖНЕЕ МЕНЮ С ТУЛТИПАМИ -->
@@ -707,11 +912,17 @@
                 <a href="#" id="link-profile" class="dock-item active" data-target="page-profile" data-tooltip="Мой Пульс">
                     <span class="dock-icon">👤</span>
                 </a>
+                <!-- Новая вкладка: Друзья -->
+                <a href="#" id="link-friends" class="dock-item" data-target="page-friends" data-tooltip="Друзья">
+                    <span class="dock-icon">👥</span>
+                </a>
                 <a href="#" id="link-news" class="dock-item" data-target="page-news" data-tooltip="Лента">
                     <span class="dock-icon">📰</span>
                 </a>
                 <a href="#" id="link-messages" class="dock-item" data-target="page-messages" data-tooltip="Сообщения">
                     <span class="dock-icon">💬</span>
+                    <!-- 🔴 Счетчик непрочитанных сообщений (изначально скрыт классом hidden) -->
+                    <span id="msg-unread-badge" class="dock-badge hidden">0</span>
                 </a>
                 <a href="#" id="link-music" class="dock-item" data-target="page-music" data-tooltip="Музыка">
                     <span class="dock-icon">🎵</span>
@@ -1018,6 +1229,412 @@
                 });
             });
         }
+
+                // Функция открытия кастомного окна настроек профиля
+        function openSettingsModal() {
+            // Получаем текущее имя из профиля, чтобы предзаполнить инпут
+            const currentName = document.getElementById('prof-name').textContent;
+    
+            // Создаем оверлей
+            const settingsOverlay = document.createElement('div');
+            settingsOverlay.className = 'pulse-modal-overlay';
+    
+            // Рендерим структуру окна настроек (Без использования alert)
+            settingsOverlay.innerHTML = `
+                <div class="pulse-modal" style="border-color: rgba(0, 243, 255, 0.2); box-shadow: 0 0 30px rgba(121, 40, 202, 0.15); max-width: 450px;">
+                    <h4 style="color: var(--neon-blue); margin-bottom: 20px;">Настройки профиля</h4>
+            
+                    <div style="text-align: left; margin-bottom: 20px;">
+                        <label style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Ваше имя в сети</label>
+                        <input type="text" id="settings-name-input" value="${currentName === 'Загрузка...' ? '' : currentName}" placeholder="Введите новое имя" style="margin-bottom: 0;">
+                    </div>
+            
+                    <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 25px;">
+                        <button class="btn-modal-close" id="settings-cancel-btn" style="margin: 0; padding: 12px 20px; font-size: 13px; border-radius: 10px;">Отмена</button>
+                        <button class="btn-primary" id="settings-save-btn" style="padding: 12px 24px; font-size: 13px; border-radius: 10px;">Сохранить</button>
+                    </div>
+                </div>
+            `;
+    
+            document.body.appendChild(settingsOverlay);
+    
+            // Обработка кнопки "Сохранить"
+            settingsOverlay.querySelector('#settings-save-btn').onclick = function() {
+                const newName = document.getElementById('settings-name-input').value.trim();
+        
+                if (!newName) {
+                    // Вместо alert() вызываем наше ранее созданное окно ошибки
+                    showErrorModal("Ошибка изменения", "Имя пользователя не может быть пустым.");
+                    return;
+                }
+        
+                // Локально обновляем текст на странице
+                document.getElementById('prof-name').textContent = newName;
+        
+                // --- ИНТЕГРАЦИЯ С БАЗОЙ ДАННЫХ ---
+                // Сюда в будущем встанет ваш REST-мост:
+                // db.ref('users/' + currentUsername).set({ name: newName });
+        
+                // Закрываем модалку
+                settingsOverlay.remove();
+            };
+    
+            // Обработка кнопки "Отмена"
+            settingsOverlay.querySelector('#settings-cancel-btn').onclick = function() {
+                settingsOverlay.remove();
+            };
+    
+            // Закрытие по клику на область вокруг окна
+            settingsOverlay.onclick = function(event) {
+                if (event.target === settingsOverlay) settingsOverlay.remove();
+            };
+        }
+
+                // --- НАВИГАЦИЯ ДЛЯ ОБНОВЛЕННОЙ НИЖНЕЙ ДОК-ПАНЕЛИ ---
+        document.querySelectorAll('.dock-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                // Пропускаем обработку для кнопки выхода, у неё своя кастомная логика
+                if (this.classList.contains('logout-item')) return;
+        
+                e.preventDefault();
+        
+                // 1. Сбрасываем активный класс у всех кнопок дока
+                document.querySelectorAll('.dock-item').forEach(btn => btn.classList.remove('active'));
+        
+                // 2. Делаем активной текущую кнопку
+                this.classList.add('active');
+        
+                // 3. Прячем все разделы сайта
+                document.querySelectorAll('.page-section').forEach(section => section.classList.add('hidden'));
+        
+                // 4. Открываем нужный раздел по data-target
+                const targetPageId = this.getAttribute('data-target');
+                const targetPage = document.getElementById(targetPageId);
+                if (targetPage) {
+                    targetPage.classList.remove('hidden');
+                }
+        
+                // Специфический триггер: если перешли в сообщения, обновляем списки и сбрасываем бадж
+                if (targetPageId === 'page-messages') {
+                    if (typeof initMessengerLogic === 'function') initMessengerLogic();
+                }
+                // Специфический триггер: если перешли к друзьям, обновляем список синхронизаций
+                if (targetPageId === 'page-friends') {
+                    if (typeof renderFriendsList === 'function') renderFriendsList();
+                }
+            });
+        });
+
+        // --- СЛУЖЕБНАЯ ФУНКЦИЯ ГЕНЕРАЦИИ ID ЧАТА ---
+        // Сортирует никнеймы по алфавиту, чтобы у danila и test_user ID всегда был "danila_test_user"
+        function generateChatId(userA, userB) {
+            return [userA, userB].sort().join('_');
+        }
+
+        // --- ЛОГИКА РАЗДЕЛА «ДРУЗЬЯ» (СИНХРОНИЗАЦИИ) ---
+
+        let foundUserCache = null; // Буфер для хранения найденного пользователя
+
+        // 1. Функция поиска пользователя по базе данных
+        document.getElementById('btn-search-user').onclick = function() {
+            const searchInput = document.getElementById('friend-search-input').value.trim();
+            const resultBox = document.getElementById('search-result-box');
+    
+            if (!searchInput) {
+                showErrorModal("Внимание", "Введите никнейм для поиска.");
+                return;
+            }
+    
+            // Имитируем получение текущего пользователя из вашей системы авторизации
+            const currentUsername = localStorage.getItem('currentUserUsername'); 
+    
+            if (searchInput === currentUsername) {
+                showErrorModal("Ошибка синхронизации", "Вы не можете добавить в друзья самого себя.");
+                return;
+            }
+
+            // Обращаемся к вашей базе через кастомный синтаксис Firebase
+            db.ref('users/' + searchInput).on('value', function(snapshot) {
+                const userData = snapshot ? snapshot.val() : null;
+        
+                if (!userData) {
+                    resultBox.classList.add('hidden');
+                    showErrorModal("Пользователь не найден", `Протокол PULSE не обнаружил юзера с ID: "${searchInput}"`);
+                    foundUserCache = null;
+                    return;
+                }
+        
+                // Если пользователь найден, кэшируем его и выводим карточку на экран
+                foundUserCache = {
+                    username: searchInput,
+                    name: userData.name || searchInput
+                };
+        
+                document.getElementById('search-res-name').textContent = foundUserCache.name;
+                document.getElementById('search-res-username').textContent = '@' + foundUserCache.username;
+                resultBox.classList.remove('hidden');
+            });
+        };
+
+        // 2. Функция клика по кнопке "Синхронизировать" (Добавить в друзья)
+        document.getElementById('btn-add-friend-action').onclick = function() {
+            if (!foundUserCache) return;
+    
+            const currentUsername = localStorage.getItem('currentUserUsername');
+            if (!currentUsername) {
+                showErrorModal("Ошибка сессии", "Пользователь не авторизован.");
+                return;
+            }
+
+            // Сохраняем связь взаимно: и у себя, и у найденного человека
+            // Вариант синтаксиса Firebase, под капотом которого ваш REST-мост сделает Fetch на GitHub Pages
+            db.ref('users/' + currentUsername + '/friends/' + foundUserCache.username).set(true);
+            db.ref('users/' + foundUserCache.username + '/friends/' + currentUsername).set(true);
+    
+            // Очищаем форму поиска
+            document.getElementById('search-result-box').classList.add('hidden');
+            document.getElementById('friend-search-input').value = '';
+    
+            // Перерендериваем список друзей на экране
+            renderFriendsList();
+        };
+
+        // 3. Функция вывода списка всех синхронизаций (друзей) на экран
+        function renderFriendsList() {
+            const currentUsername = localStorage.getItem('currentUserUsername');
+            const container = document.getElementById('friends-list-container');
+            const noFriendsText = document.getElementById('no-friends-text');
+            const friendsCounter = document.getElementById('stat-friends'); // Счетчик на карточке профиля
+    
+            if (!currentUsername) return;
+
+            // Читаем список друзей текущего юзера
+            db.ref('users/' + currentUsername + '/friends').on('value', function(snapshot) {
+                const friendsObj = snapshot ? snapshot.val() : null;
+                container.innerHTML = '';
+        
+                if (!friendsObj || Object.keys(friendsObj).length === 0) {
+                    noFriendsText.classList.remove('hidden');
+                    if (friendsCounter) friendsCounter.textContent = '0';
+                    return;
+                }
+        
+                noFriendsText.classList.add('hidden');
+                const friendsUsernames = Object.keys(friendsObj);
+        
+                // Динамически обновляем счетчик "Синхронизаций" на главной
+                if (friendsCounter) friendsCounter.textContent = friendsUsernames.length;
+
+                // Для каждого юзернейма из списка друзей тянем его реальное Имя
+                friendsUsernames.forEach(fUsername => {
+                    db.ref('users/' + fUsername).on('value', function(userSnapshot) {
+                        const uData = userSnapshot ? userSnapshot.val() : null;
+                        const fName = uData ? (uData.name || fUsername) : fUsername;
+                        const firstLetter = fName.charAt(0).toUpperCase();
+
+                        // Создаем карточку в сетке друзей
+                        const card = document.createElement('div');
+                        card.className = 'friend-grid-card';
+                        card.innerHTML = `
+                            <div class="avatar-plug" style="width: 45px; height: 45px; border-radius: 12px; font-size: 18px;">${firstLetter}</div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 15px;">${fName}</div>
+                                <div style="color: var(--text-muted); font-size: 12px;">@${fUsername}</div>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                });
+            });
+        }
+
+        // --- ЛОГИКА РАЗДЕЛА «СООБЩЕНИЯ» (МЕССЕНДЖЕР) ---
+
+        let currentActiveChatFriend = null; // Юзернейм того, с кем сейчас открыт чат
+
+        // 1. Инициализация мессенджера (Вызывается при клике на вкладку сообщений)
+        function initMessengerLogic() {
+            const currentUsername = localStorage.getItem('currentUserUsername');
+            const chatsAsideContainer = document.getElementById('chats-list-aside');
+            const noChatsText = document.getElementById('no-chats-text');
+    
+            if (!currentUsername) return;
+
+            // Подгружаем список друзей для формирования диалогов
+            db.ref('users/' + currentUsername + '/friends').on('value', function(snapshot) {
+                const friendsObj = snapshot ? snapshot.val() : null;
+                chatsAsideContainer.innerHTML = '';
+        
+                if (!friendsObj || Object.keys(friendsObj).length === 0) {
+                    noChatsText.classList.remove('hidden');
+                    return;
+                }
+        
+                noChatsText.classList.add('hidden');
+                const friendsList = Object.keys(friendsObj);
+
+                friendsList.forEach(fUsername => {
+                    db.ref('users/' + fUsername).on('value', function(userSnapshot) {
+                        const uData = userSnapshot ? userSnapshot.val() : null;
+                        const fName = uData ? (uData.name || fUsername) : fUsername;
+                        const firstLetter = fName.charAt(0).toUpperCase();
+                
+                        // Создаем плашку диалога слева
+                        const chatItem = document.createElement('div');
+                        chatItem.className = `chat-aside-item ${currentActiveChatFriend === fUsername ? 'active' : ''}`;
+                        chatItem.innerHTML = `
+                            <div class="avatar-plug" style="width: 36px; height: 36px; border-radius: 10px; font-size: 14px;">${firstLetter}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; font-size: 14px; color: var(--text-main);">${fName}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Нажмите для связи</div>
+                            </div>
+                        `;
+                
+                        // Клик по диалогу открывает чат
+                        chatItem.onclick = function() {
+                            openChatWithUser(fUsername, fName);
+                        };
+                
+                        chatsAsideContainer.appendChild(chatItem);
+                    });
+                });
+            });
+        }
+
+        // 2. Открытие конкретного чата с пользователем
+        function openChatWithUser(friendUsername, friendName) {
+            currentActiveChatFriend = friendUsername;
+    
+            // Переключаем активные классы в левой панели
+            initMessengerLogic();
+    
+            // Настраиваем шапку чата справа
+            document.getElementById('chat-header-name').textContent = friendName;
+            document.getElementById('chat-header-avatar').textContent = friendName.charAt(0).toUpperCase();
+    
+            // Переключаем видимость окон
+            document.getElementById('chat-stub').classList.add('hidden');
+            document.getElementById('chat-active-body').classList.remove('hidden');
+    
+            // Включаем прослушку сообщений в реальном времени
+            listenMessages();
+        }
+
+        // 3. Прослушка сообщений в выбранном чате
+        function listenMessages() {
+            const currentUsername = localStorage.getItem('currentUserUsername');
+            const messagesDisplay = document.getElementById('chat-messages-display');
+    
+            if (!currentUsername || !currentActiveChatFriend) return;
+    
+            // Генерируем сквозной алфавитный ID чата
+            const chatId = generateChatId(currentUsername, currentActiveChatFriend);
+    
+            db.ref('messages/' + chatId).on('value', function(snapshot) {
+                const msgsObj = snapshot ? snapshot.val() : null;
+                messagesDisplay.innerHTML = '';
+        
+                if (!msgsObj) return;
+        
+                // Разбираем пуши из базы
+                Object.keys(msgsObj).forEach(msgKey => {
+                    const msgData = msgsObj[msgKey];
+                    const isOutgoing = msgData.sender === currentUsername;
+            
+                    // Если сообщение входящее и мы сейчас в этом чате — помечаем прочитанным
+                    if (!isOutgoing && msgData.read === false) {
+                        db.ref('messages/' + chatId + '/' + msgKey + '/read').set(true);
+                    }
+            
+                    const msgElement = document.createElement('div');
+                    msgElement.className = `msg ${isOutgoing ? 'outgoing' : 'incoming'}`;
+                    msgElement.innerHTML = `
+                        <span class="sender">${isOutgoing ? 'Ты' : msgData.senderName || msgData.sender}</span>
+                        <div>${msgData.text}</div>
+                    `;
+            
+                    messagesDisplay.appendChild(msgElement);
+                });
+        
+                // Автоматический скролл вниз чата
+                messagesDisplay.scrollTop = messagesDisplay.scrollHeight;
+            });
+        }
+
+        // 4. Отправка сообщения
+        function sendChatMessage() {
+            const input = document.getElementById('chat-message-input');
+            const text = input.value.trim();
+    
+            if (!text || !currentActiveChatFriend) return;
+    
+            const currentUsername = localStorage.getItem('currentUserUsername');
+            const currentName = document.getElementById('prof-name').textContent;
+            const chatId = generateChatId(currentUsername, currentActiveChatFriend);
+    
+            const newMessage = {
+                sender: currentUsername,
+                senderName: currentName === 'Загрузка...' ? currentUsername : currentName,
+                text: text,
+                timestamp: Date.now(),
+                read: false // Новое сообщение по дефолту непрочитано
+            };
+    
+            // Имитируем .push() через ваш REST-мост
+            db.ref('messages/' + chatId).push(newMessage);
+    
+            input.value = ''; // Очищаем поле ввода
+        }
+
+        // Слушатели для отправки сообщений
+        document.getElementById('btn-send-chat-msg').onclick = sendChatMessage;
+        document.getElementById('chat-message-input').onkeydown = function(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        };
+
+        // --- 🔴 ГЛОБАЛЬНЫЙ СЧЕТЧИК НЕПРОЧИТАННЫХ SMS НА ДОК-ПАНЕЛИ ---
+        // Сканирует базу и выводит общее число непрочитанных сообщений, отправленных текущему пользователю
+        function startGlobalUnreadMessagesCounter() {
+            const currentUsername = localStorage.getItem('currentUserUsername');
+            const badge = document.getElementById('msg-unread-badge');
+    
+            if (!currentUsername || !badge) return;
+    
+            db.ref('messages').on('value', function(snapshot) {
+                const allChats = snapshot ? snapshot.val() : null;
+                let totalUnread = 0;
+        
+                if (allChats) {
+                    // Перебираем все существующие чаты в базе данных
+                    Object.keys(allChats).forEach(chatId => {
+                        // Проверяем, относится ли этот чат к текущему пользователю
+                        if (chatId.includes(currentUsername)) {
+                            const chatMessages = allChats[chatId];
+                    
+                            Object.keys(chatMessages).forEach(msgKey => {
+                                const msg = chatMessages[msgKey];
+                                // Если сообщение пришло нам и оно не прочитано
+                                if (msg.sender !== currentUsername && msg.read === false) {
+                                    totalUnread++;
+                                }
+                            });
+                        }
+                    });
+                }
+        
+                // Выводим цифру или прячем бадж, если непрочитанных нет
+                if (totalUnread > 0) {
+                    badge.textContent = totalUnread;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            });
+        }
+
+        // Запускаем фоновый счетчик непрочитанных сообщений сразу при загрузке системы
+        setTimeout(startGlobalUnreadMessagesCounter, 1000);
+
 
         checkAuth();
     </script>
