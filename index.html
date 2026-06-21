@@ -7,565 +7,572 @@
     <link href="https://googleapis.com" rel="stylesheet">
     
     <style>
-        :root {
-            --bg-dark: #050508;
-            --panel-bg: rgba(13, 14, 24, 0.65);
-            --border-color: rgba(255, 255, 255, 0.06);
-            --text-main: #f5f6f9;
-            --text-muted: #626575;
-            --neon-pink: #ff007f;
-            --neon-purple: #7928ca;
-            --neon-cyan: #00f3ff;
-            --neon-green: #39ff14;
-            --pulse-gradient: linear-gradient(45deg, #7928ca, #ff007f, #00f3ff);
-        }
+        
+            :root {
+        --bg-dark: #020205;              /* Глубокий космический черный фон */
+        --panel-bg: rgba(10, 11, 20, 0.7); /* Матовый глассморфизм */
+        --border-color: rgba(255, 255, 255, 0.05);
+        --text-main: #f5f6f9;
+        --text-muted: #565968;
+        --neon-blue: #00f3ff;            /* Синий/Циановый неон для активности */
+        --neon-purple: #7928ca;          /* Фиолетовый неон для акцентов */
+        --neon-cyan: #00f3ff;
+        --neon-green: #39ff14;
+        --neon-red: #ff3366;             /* Благородный красный для ошибок вместо розового */
+        /* Строгий двухцветный фиолетово-синий градиент PULSE */
+        --pulse-gradient: linear-gradient(135deg, #7928ca, #00f3ff);
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-        }
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', sans-serif;
+    }
 
-        body {
-            background: radial-gradient(circle at 80% 20%, #170d2b, var(--bg-dark) 60%),
-                        radial-gradient(circle at 10% 80%, #092327, var(--bg-dark) 60%);
-            color: var(--text-main);
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
-        }
+    body {
+        /* Фон перенаправлен строго в фиолетово-синюю гамму */
+        background: radial-gradient(circle at 80% 20%, #110824, var(--bg-dark) 65%),
+                    radial-gradient(circle at 10% 80%, #05161f, var(--bg-dark) 65%);
+        color: var(--text-main);
+        height: 100vh;
+        display: flex;
+        overflow: hidden;
+    }
 
-        .screen { width: 100%; height: 100%; display: flex; }
-        .hidden { display: none !important; }
+    .screen { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+    .hidden { display: none !important; }
 
-        #auth-screen {
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle, #0e0a1a 0%, #030305 100%);
-            width: 100%;
-        }
+    #auth-screen {
+        justify-content: center;
+        align-items: center;
+        background: radial-gradient(circle, #090612 0%, #010103 100%);
+        width: 100%;
+    }
 
-        .auth-card {
-            background: var(--panel-bg);
-            backdrop-filter: blur(25px);
-            padding: 50px 40px;
-            border-radius: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            width: 100%;
-            max-width: 420px;
-            text-align: center;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), 0 0 50px rgba(121, 40, 202, 0.1);
-        }
+    .auth-card {
+        background: var(--panel-bg);
+        backdrop-filter: blur(30px);
+        -webkit-backdrop-filter: blur(30px);
+        padding: 50px 40px;
+        border-radius: 28px;
+        border: 1px solid var(--border-color);
+        width: 100%;
+        max-width: 420px;
+        text-align: center;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(121, 40, 202, 0.15);
+    }
 
-        .auth-card h2 {
-            font-size: 36px;
-            font-weight: 900;
-            letter-spacing: 2px;
-            background: var(--pulse-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 6px;
-        }
+    .auth-card h2 {
+        font-size: 36px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        background: var(--pulse-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 6px;
+    }
 
-        .auth-card p { color: var(--text-muted); margin-bottom: 25px; font-size: 14px; }
-        .pulse-heart { font-size: 40px; margin-bottom: 15px; animation: heartbeat 1.2s infinite ease-in-out; }
-        #auth-status {
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            min-height: 18px;
-            transition: 0.3s ease;
-        }
-        .status-error { color: var(--neon-pink); text-shadow: 0 0 10px rgba(255, 0, 127, 0.4); }
-        .status-success { color: var(--neon-green); text-shadow: 0 0 10px rgba(57, 255, 20, 0.4); }
+    .auth-card p { color: var(--text-muted); margin-bottom: 25px; font-size: 14px; }
+    .pulse-heart { font-size: 40px; margin-bottom: 15px; animation: heartbeat 1.2s infinite ease-in-out; color: var(--neon-blue); text-shadow: 0 0 15px var(--neon-blue); }
+    
+    #auth-status {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        min-height: 18px;
+        transition: 0.3s ease;
+    }
+    .status-error { color: var(--neon-red); text-shadow: 0 0 10px rgba(255, 51, 102, 0.4); }
+    .status-success { color: var(--neon-green); text-shadow: 0 0 10px rgba(57, 255, 20, 0.4); }
 
-        input {
-            width: 100%;
-            padding: 16px 20px;
-            background: rgba(4, 4, 6, 0.6);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            color: white;
-            font-size: 15px;
-            margin-bottom: 18px;
-            transition: all 0.3s ease;
-        }
+    input {
+        width: 100%;
+        padding: 16px 20px;
+        background: rgba(2, 2, 4, 0.7);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        color: white;
+        font-size: 15px;
+        margin-bottom: 18px;
+        transition: all 0.3s ease;
+    }
 
-        input:focus {
-            border-color: var(--neon-cyan);
-            outline: none;
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.25);
-            background: rgba(0, 0, 0, 0.8);
-        }
+    input:focus {
+        border-color: var(--neon-blue);
+        outline: none;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        background: rgba(0, 0, 0, 0.9);
+    }
 
-        .auth-buttons { display: flex; flex-direction: column; gap: 12px; }
+    .auth-buttons { display: flex; flex-direction: column; gap: 12px; }
+    button { cursor: pointer; border: none; font-weight: 600; transition: 0.2s; }
 
-        button { cursor: pointer; border: none; font-weight: 600; transition: 0.2s; }
+    .btn-primary {
+        padding: 16px;
+        background: var(--pulse-gradient);
+        background-size: 200% auto;
+        color: white;
+        border-radius: 14px;
+        box-shadow: 0 4px 20px rgba(0, 243, 255, 0.2);
+    }
+    .btn-primary:hover {
+        background-position: right center;
+        box-shadow: 0 4px 25px rgba(0, 243, 255, 0.4);
+        transform: translateY(-1px);
+    }
 
-        .btn-primary {
-            padding: 16px;
-            background: var(--pulse-gradient);
-            background-size: 200% auto;
-            color: white;
-            border-radius: 14px;
-            box-shadow: 0 4px 20px rgba(255, 0, 127, 0.3);
-        }
-        .btn-primary:hover {
-            background-position: right center;
-            box-shadow: 0 4px 25px rgba(0, 243, 255, 0.5);
-            transform: translateY(-1px);
-        }
+    /* --- СТИЛИ ДЛЯ ОКНА ОШИБОК ВЗАМЕН ALERT() --- */
+    .pulse-modal-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        display: flex; justify-content: center; align-items: center;
+        z-index: 10000;
+        animation: fadeIn 0.2s ease;
+    }
+    .pulse-modal {
+        background: var(--panel-bg);
+        border: 1px solid rgba(255, 51, 102, 0.3); /* Красная неоновая каемка */
+        padding: 30px; border-radius: 20px;
+        max-width: 400px; width: 90%; text-align: center;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 30px rgba(255, 51, 102, 0.1);
+    }
+    .pulse-modal h4 { color: var(--neon-red); font-size: 20px; margin-bottom: 12px; font-weight: 800; text-transform: uppercase; }
+    .pulse-modal p { color: var(--text-main); font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+    .btn-modal-close { padding: 12px 24px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid var(--border-color); border-radius: 10px; font-size: 13px; }
+    .btn-modal-close:hover { background: var(--neon-red); border-color: transparent; box-shadow: 0 0 15px var(--neon-red); }
 
-        .btn-secondary {
-            padding: 16px;
-            background: transparent;
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 14px;
-        }
-        .btn-secondary:hover { background: rgba(255, 255, 255, 0.04); }
+    .btn-secondary {
+    padding: 16px;
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.04); }
 
-        .sidebar {
-            width: 300px;
-            background: var(--panel-bg);
-            backdrop-filter: blur(15px);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            padding: 30px;
-        }
+    /* Класс .sidebar полностью удален, чтобы меню не уходило влево */
 
-        .logo {
-            font-size: 26px;
-            font-weight: 900;
-            letter-spacing: 1px;
-            margin-bottom: 45px;
-            background: var(--pulse-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .logo .dot { -webkit-text-fill-color: var(--neon-pink); }
+    .logo {
+        font-size: 26px;
+        font-weight: 900;
+        letter-spacing: 1px;
+        margin-bottom: 45px;
+        background: var(--pulse-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .logo .dot { -webkit-text-fill-color: var(--neon-blue); }
 
-        nav { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-        nav a {
-            text-decoration: none;
-            color: #a0a5b5;
-            padding: 14px 18px;
-            border-radius: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            transition: 0.25s;
-        }
-        nav a.active, nav a:hover {
-            background: rgba(121, 40, 202, 0.15);
-            color: #fff;
-            border-left: 4px solid var(--neon-pink);
-            padding-left: 14px;
-        }
+    /* Контейнер nav теперь очищен и готов работать внутри нижней док-панели */
+    nav { flex: 1; display: flex; flex-direction: column; gap: 10px; }
 
-        .user-profile {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-        }
-        .user-info { display: flex; align-items: center; gap: 12px; }
-        .avatar-plug {
-            width: 36px;
-            height: 36px;
-            background: var(--pulse-gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-        }
-        .btn-logout { background: transparent; color: var(--text-muted); font-size: 13px; }
-        .btn-logout:hover { color: var(--neon-pink); }
+    .user-profile {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .avatar-plug {
+        width: 36px;
+        height: 36px;
+        background: var(--pulse-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+    }
+    .btn-logout { background: transparent; color: var(--text-muted); font-size: 13px; }
+    .btn-logout:hover { color: var(--neon-red); }
 
-        .chat-container { flex: 1; display: flex; flex-direction: column; }
+    .chat-container { flex: 1; display: flex; flex-direction: column; }
 
-        .chat-header {
-            padding: 24px 40px;
-            border-bottom: 1px solid var(--border-color);
-            background: rgba(13, 14, 24, 0.4);
-            backdrop-filter: blur(10px);
-        }
-        .online-status { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-        .status-text { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .chat-header {
+        padding: 24px 40px;
+        border-bottom: 1px solid var(--border-color);
+        background: rgba(13, 14, 24, 0.4);
+        backdrop-filter: blur(10px);
+    }
+    .online-status { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .status-text { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
 
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--neon-green);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--neon-green);
-            animation: dotPulse 1.5s infinite;
-        }
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--neon-green);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--neon-green);
+        animation: dotPulse 1.5s infinite;
+    }
 
-        .messages-area {
-            flex: 1;
-            padding: 40px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+    .messages-area {
+        flex: 1;
+        padding: 40px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
 
-        .msg {
-            max-width: 55%;
-            padding: 14px 20px;
-            border-radius: 20px;
-            font-size: 15px;
-            line-height: 1.5;
-            position: relative;
-            animation: msgAppear 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-        }
-        .msg .sender {
-            font-size: 11px;
-            color: var(--neon-cyan);
-            margin-bottom: 6px;
-            display: block;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+    .msg {
+        max-width: 55%;
+        padding: 14px 20px;
+        border-radius: 20px;
+        font-size: 15px;
+        line-height: 1.5;
+        position: relative;
+        animation: msgAppear 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    .msg .sender {
+        font-size: 11px;
+        color: var(--neon-cyan);
+        margin-bottom: 6px;
+        display: block;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
 
-        .msg.incoming {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            align-self: flex-start;
-            border-top-left-radius: 4px;
-        }
-        .msg.outgoing {
-            background: linear-gradient(135deg, var(--neon-purple), #4a148c);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            align-self: flex-end;
-            border-top-right-radius: 4px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
-        .msg.outgoing .sender { color: #ff80df; }
+    .msg.incoming {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        align-self: flex-start;
+        border-top-left-radius: 4px;
+    }
+    .msg.outgoing {
+        background: linear-gradient(135deg, var(--neon-purple), #2a085c);
+        border: 1px solid rgba(0, 243, 255, 0.2);
+        align-self: flex-end;
+        border-top-right-radius: 4px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(121, 40, 202, 0.1);
+    }
+    /* Очистили никнейм в исходящих сообщениях от розового цвета */
+    .msg.outgoing .sender { color: var(--neon-cyan); }
 
-        .message-input-area {
-            padding: 25px 40px;
-            display: flex;
-            gap: 15px;
-            background: var(--panel-bg);
-            border-top: 1px solid var(--border-color);
-        }
-        .message-input-area input { margin: 0; }
+    .message-input-area {
+        padding: 25px 40px;
+        display: flex;
+        gap: 15px;
+        background: var(--panel-bg);
+        border-top: 1px solid var(--border-color);
+    }
 
-        .btn-send {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 0 28px;
-            background: var(--pulse-gradient);
-            color: white;
-            border-radius: 14px;
-            font-size: 15px;
-        }
-        .btn-send:hover { box-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
+    .message-input-area input { margin: 0; }
 
-        @keyframes heartbeat {
-            0% { transform: scale(1); }
-            20% { transform: scale(1.15); }
-            40% { transform: scale(1); }
-            60% { transform: scale(1.15); }
-            100% { transform: scale(1); }
-        }
+    .btn-send {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 28px;
+        background: var(--pulse-gradient);
+        color: white;
+        border-radius: 14px;
+        font-size: 15px;
+    }
+    .btn-send:hover { box-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
 
-        @keyframes dotPulse {
-            0% { box-shadow: 0 0 0 0 rgba(57, 255, 20, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(57, 255, 20, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(57, 255, 20, 0); }
-        }
+    @keyframes heartbeat {
+        0% { transform: scale(1); }
+        20% { transform: scale(1.12); }
+        40% { transform: scale(1); }
+        60% { transform: scale(1.12); }
+        100% { transform: scale(1); }
+    }
 
-        @keyframes msgAppear {
-            from { opacity: 0; transform: translateY(20px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
+    @keyframes dotPulse {
+        0% { box-shadow: 0 0 0 0 rgba(57, 255, 20, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(57, 255, 20, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(57, 255, 20, 0); }
+    }
 
-                /* Общий контейнер контента */
-        .content-area {
-            flex: 1;
-            padding: 40px;
-            overflow-y: auto;
-            background: rgba(4, 4, 6, 0.2);
-        }
+    @keyframes msgAppear {
+        from { opacity: 0; transform: translateY(15px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
-        .page-section {
-            max-width: 900px;
-            margin: 0 auto;
-            animation: fadeIn 0.4s ease;
-        }
+    /* Общий контейнер контента */
+    .content-area {
+        flex: 1;
+        padding: 40px;
+        overflow-y: auto;
+        background: rgba(2, 2, 4, 0.3);
+    }
 
-        /* Карточка Профиля */
-        .profile-card {
-            background: var(--panel-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            padding: 35px;
-            margin-bottom: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
+    .page-section {
+        max-width: 900px;
+        margin: 0 auto;
+        animation: fadeIn 0.4s ease;
+    }
 
-        .profile-main-info {
-            display: flex;
-            gap: 35px;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 30px;
-            margin-bottom: 25px;
-        }
+    /* Карточка Профиля */
+    .profile-card {
+        background: var(--panel-bg);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        padding: 35px;
+        margin-bottom: 30px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
 
-        .profile-avatar-zone {
-            text-align: center;
-        }
+    .profile-main-info {
+        display: flex;
+        gap: 35px;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 30px;
+        margin-bottom: 25px;
+    }
 
-        .user-avatar {
-            width: 110px;
-            height: 110px;
-            background: var(--pulse-gradient);
-            border-radius: 32px; /* Фирменная фишка: не круглые, а стильные закругленные квадраты */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 42px;
-            font-weight: 900;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            box-shadow: 0 0 30px rgba(121, 40, 202, 0.3);
-        }
+    .profile-avatar-zone {
+        text-align: center;
+    }
 
-        .btn-edit-avatar {
-            background: transparent;
-            color: var(--text-muted);
-            font-size: 11px;
-            margin-top: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .btn-edit-avatar:hover { color: var(--neon-cyan); }
+    /* Обновленная фиолетово-синяя аватарка */
+    .user-avatar {
+        width: 110px;
+        height: 110px;
+        background: var(--pulse-gradient);
+        border-radius: 32px; /* Фирменные скругленные квадраты */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 42px;
+        font-weight: 900;
+        text-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        box-shadow: 0 0 30px rgba(121, 40, 202, 0.25);
+    }
 
-        .profile-text-zone h1 {
-            font-size: 32px;
-            font-weight: 900;
-            letter-spacing: -0.5px;
-            margin-bottom: 8px;
-        }
+    .btn-edit-avatar {
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+        margin-top: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .btn-edit-avatar:hover { color: var(--neon-cyan); }
+
+    .profile-text-zone h1 {
+        font-size: 32px;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+        margin-bottom: 8px;
+    }
 
         /* Инпут статуса прямо в тексте */
-        #prof-status-input {
-            background: transparent;
-            border: none;
-            padding: 0;
-            margin: 0;
-            color: var(--text-muted);
-            font-size: 15px;
-            width: 100%;
-        }
-        #prof-status-input:focus {
-            color: var(--text-main);
-            box-shadow: none;
-            border-bottom: 1px solid var(--neon-cyan);
-        }
+    #prof-status-input {
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 15px;
+        width: 100%;
+    }
+    #prof-status-input:focus {
+        color: var(--text-main);
+        box-shadow: none;
+        border-bottom: 1px solid var(--neon-cyan);
+    }
 
-        .profile-link {
-            font-size: 13px;
-            color: var(--neon-pink);
-            font-weight: 600;
-            margin-top: 10px;
-        }
+    /* Изменили цвет ссылки профиля со старого розового на строгий синий неон */
+    .profile-link {
+        font-size: 13px;
+        color: var(--neon-cyan);
+        font-weight: 600;
+        margin-top: 10px;
+    }
 
-        /* Статистика */
-        .profile-stats {
-            display: flex;
-            gap: 50px;
-        }
+    /* Статистика */
+    .profile-stats {
+        display: flex;
+        gap: 50px;
+    }
 
-        .stat-box h5 {
-            color: var(--text-muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
+    .stat-box h5 {
+        color: var(--text-muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+    }
 
-        .stat-box span {
-            font-size: 24px;
-            font-weight: 800;
-            color: var(--neon-cyan);
-        }
+    .stat-box span {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--neon-cyan);
+    }
 
-        /* Создание Поста */
-        .create-post-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 25px;
-        }
+    /* Создание Поста */
+    .create-post-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 25px;
+        margin-bottom: 25px;
+    }
 
-        .create-post-card h3 {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: #a0a5b5;
-        }
+    .create-post-card h3 {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 15px;
+        color: #a0a5b5;
+    }
 
-        textarea {
-            width: 100%;
-            height: 90px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 15px;
-            color: white;
-            font-size: 15px;
-            resize: none;
-            transition: 0.3s;
-        }
-        textarea:focus {
-            outline: none;
-            border-color: var(--neon-purple);
-            box-shadow: 0 0 15px rgba(121, 40, 202, 0.2);
-        }
+    textarea {
+        width: 100%;
+        height: 90px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 15px;
+        color: white;
+        font-size: 15px;
+        resize: none;
+        transition: 0.3s;
+    }
+    textarea:focus {
+        outline: none;
+        border-color: var(--neon-purple);
+        box-shadow: 0 0 15px rgba(121, 40, 202, 0.25);
+    }
 
-        .post-form-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-        }
+    .post-form-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+    }
 
-        .post-attach-btn {
-            font-size: 13px;
-            color: var(--text-muted);
-            cursor: pointer;
-        }
-        .post-attach-btn:hover { color: var(--text-main); }
+    .post-attach-btn {
+        font-size: 13px;
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+    .post-attach-btn:hover { color: var(--text-main); }
 
-        .btn-pulse-post {
-            padding: 12px 25px;
-            background: var(--pulse-gradient);
-            color: white;
-            border-radius: 10px;
-            font-size: 14px;
-        }
+    .btn-pulse-post {
+        padding: 12px 25px;
+        background: var(--pulse-gradient);
+        color: white;
+        border-radius: 10px;
+        font-size: 14px;
+        box-shadow: 0 4px 15px rgba(121, 40, 202, 0.2);
+    }
+    .btn-pulse-post:hover {
+        box-shadow: 0 4px 20px rgba(0, 243, 255, 0.3);
+        transform: translateY(-1px);
+    }
 
-                /* Перестраиваем главный экран */
-        #app-screen {
-            flex-direction: column;
-            position: relative;
-            height: 100vh;
-            width: 100vw;
-        }
+        /* --- СБОРКА И ПАРЕНИЕ НИЖНЕЙ DOCK-ПАНЕЛИ --- */
 
-        /* Контентная зона на весь экран с отступом снизу под меню */
-        .content-area {
-            flex: 1;
-            width: 100%;
-            padding: 40px 40px 120px 40px; /* 120px снизу, чтобы меню не перекрывало контент */
-            overflow-y: auto;
-            background: transparent;
-        }
+    /* Контейнер для нижнего меню */
+    .bottom-dock-container {
+        position: absolute;
+        bottom: 25px;
+        left: 0;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        pointer-events: none; /* Пропускаем клики сквозь пустую зону */
+        z-index: 999;
+    }
 
-        /* Контейнер для нижнего меню */
-        .bottom-dock-container {
-            position: absolute;
-            bottom: 25px;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            pointer-events: none; /* Чтобы сквозь пустую зону можно было кликать */
-            z-index: 999;
-        }
+    /* Сама парящая панель (Строгий фиолетово-синий неон) */
+    .bottom-dock {
+        pointer-events: auto; /* Возвращаем кликабельность кнопкам */
+        display: flex;
+        gap: 12px;
+        background: rgba(10, 11, 20, 0.75);
+        backdrop-filter: blur(30px);
+        -webkit-backdrop-filter: blur(30px);
+        padding: 10px 15px;
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 
+                    0 0 30px rgba(121, 40, 202, 0.2);
+    }
 
-        /* Парящая док-панель */
-        .bottom-dock {
-            pointer-events: auto; /* Возвращаем кликабельность кнопкам */
-            display: flex;
-            gap: 15px;
-            background: rgba(13, 14, 24, 0.75);
-            backdrop-filter: blur(30px);
-            padding: 10px 25px;
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 
-                        0 0 30px rgba(121, 40, 202, 0.15);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+    /* Компактный элемент меню (Только иконка, без текста) */
+    .dock-item {
+        position: relative; /* База для позиционирования подсказки */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: #a0a5b5;
+        width: 55px;
+        height: 55px;
+        border-radius: 14px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-        /* Элемент меню */
-        .dock-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            color: #a0a5b5;
-            width: 75px;
-            height: 65px;
-            border-radius: 16px;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+    .dock-icon {
+        font-size: 22px;
+        transition: transform 0.25s ease;
+    }
 
-        .dock-icon {
-            font-size: 20px;
-            margin-bottom: 4px;
-            transition: transform 0.25s ease;
-        }
+    /* Эффекты при наведении: кнопка плавно приподнимается */
+    .dock-item:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.03);
+        transform: translateY(-5px);
+    }
+    .dock-item:hover .dock-icon {
+        transform: scale(1.1);
+    }
 
-        .dock-label {
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            opacity: 0.6;
-            transition: opacity 0.25s ease;
-        }
+    /* Активный пункт меню (Фиолетово-синий градиент PULSE) */
+    .dock-item.active {
+        background: linear-gradient(135deg, var(--neon-purple), #2a085c);
+        color: #fff;
+        border: 1px solid rgba(0, 243, 255, 0.4);
+        box-shadow: 0 10px 20px rgba(121, 40, 202, 0.3),
+                    0 0 15px rgba(0, 243, 255, 0.25);
+    }
 
-        /* Эффекты при наведении: кнопка плавно приподнимается */
-        .dock-item:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.03);
-            transform: translateY(-8px);
-        }
-        .dock-item:hover .dock-icon {
-            transform: scale(1.15);
-        }
+    /* Кнопка выхода (Строгий неоново-красный оттенок при наведении) */
+    .logout-item:hover {
+        background: rgba(255, 51, 102, 0.15);
+        color: var(--neon-red);
+    }
 
-        /* Активный пункт (куда нажали) */
-        .dock-item.active {
-            background: var(--pulse-gradient);
-            color: #fff;
-            box-shadow: 0 10px 20px rgba(255, 0, 127, 0.25),
-                        0 0 15px rgba(0, 243, 255, 0.2);
-        }
-        .dock-item.active .dock-label {
-            opacity: 1;
-        }
+    /* --- РЕАЛИЗАЦИЯ ВСПЛЫВАЮЩИХ ПОДСКАЗОК (TOOLTIPS) НА ЧИСТОМ CSS --- */
+    .dock-item::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 70px; /* Появление строго НАД иконкой */
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        background: rgba(10, 10, 18, 0.95);
+        backdrop-filter: blur(10px);
+        color: #fff;
+        padding: 6px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 243, 255, 0.3);
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-        /* Кнопка выхода */
-        .logout-item:hover {
-            background: rgba(255, 0, 127, 0.15);
-            color: var(--neon-pink);
-        }
-
-        /* Мини-логотип внутри профиля */
-        .logo-mini {
-            font-size: 12px;
-            font-weight: 900;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
-
+    /* Плавный запуск подсказки при наведении мыши */
+    .dock-item:hover::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 
     </style>
 </head>
@@ -589,12 +596,12 @@
         </div>
     </div>
 
-        <!-- Главный экран соцсети с нижним меню -->
+            <!-- Главный экран соцсети с нижним меню -->
     <div id="app-screen" class="screen hidden">
-        
-        <!-- Верхняя контентная зона (теперь на всю ширину) -->
+    
+        <!-- Верхняя контентная зона -->
         <main class="content-area">
-            
+        
             <!-- РАЗДЕЛ 1: МОЙ ПУЛЬС (ПРОФИЛЬ) -->
             <div id="page-profile" class="page-section">
                 <!-- Карточка Профиля -->
@@ -612,21 +619,21 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Твои показатели в сети -->
+                
+                    <!-- Новые строгие показатели в сети -->
                     <div class="profile-stats">
                         <div class="stat-box"><h5>Синхронизации</h5><span id="stat-friends">0</span></div>
-                        <div class="stat-box"><h5>Вибрации</h5><span id="stat-posts">0</span></div>
+                        <div class="stat-box"><h5>Публикации</h5><span id="stat-posts">0</span></div>
                         <div class="stat-box"><h5>Треки</h5><span id="stat-tracks">0</span></div>
                     </div>
                 </div>
 
-                <!-- Стена постов -->
+                <!-- Стена постов (Без "вибраций") -->
                 <div class="wall-section">
                     <div class="create-post-card">
-                        <h3>Запустить новую вибрацию в сеть</h3>
+                        <h3>Опубликовать мысль в сеть</h3>
                         <form id="post-form">
-                            <textarea id="post-text-input" placeholder="Что у тебя на уме, бро? Напиши что-нибудь..." required></textarea>
+                            <textarea id="post-text-input" placeholder="Поделитесь тем, что происходит вокруг..." required></textarea>
                             <div class="post-form-footer">
                                 <div class="post-attach-btn">➕ Добавить медиа</div>
                                 <button type="submit" class="btn-pulse-post">Импульс ⚡</button>
@@ -639,7 +646,7 @@
                 </div>
             </div>
 
-            <!-- РАЗДЕЛ 2: СООБЩЕНИЯ (Заглушка, её наполним следующим шагом) -->
+            <!-- РАЗДЕЛ 2: СООБЩЕНИЯ -->
             <div id="page-messages" class="page-section hidden">
                 <div class="profile-card">
                     <h2>Твои Диалоги</h2>
@@ -649,28 +656,23 @@
 
         </main>
 
-        <!-- 🌌 НАШЕ НОВОЕ НИЖНЕЕ МЕНЮ (DOCK-ПАНЕЛЬ) -->
+        <!-- 🌌 ОБНОВЛЕННОЕ МИНИМАЛИСТИЧНОЕ НИЖНЕЕ МЕНЮ С ТУЛТИПАМИ -->
         <div class="bottom-dock-container">
             <nav class="bottom-dock">
-                <a href="#" id="link-profile" class="dock-item active" data-target="page-profile">
+                <a href="#" id="link-profile" class="dock-item active" data-target="page-profile" data-tooltip="Мой Пульс">
                     <span class="dock-icon">👤</span>
-                    <span class="dock-label">Мой Пульс</span>
                 </a>
-                <a href="#" id="link-news" class="dock-item" data-target="page-news">
+                <a href="#" id="link-news" class="dock-item" data-target="page-news" data-tooltip="Лента">
                     <span class="dock-icon">📰</span>
-                    <span class="dock-label">Лента</span>
                 </a>
-                <a href="#" id="link-messages" class="dock-item" data-target="page-messages">
+                <a href="#" id="link-messages" class="dock-item" data-target="page-messages" data-tooltip="Сообщения">
                     <span class="dock-icon">💬</span>
-                    <span class="dock-label">Сообщения</span>
                 </a>
-                <a href="#" id="link-music" class="dock-item" data-target="page-music">
+                <a href="#" id="link-music" class="dock-item" data-target="page-music" data-tooltip="Музыка">
                     <span class="dock-icon">🎵</span>
-                    <span class="dock-label">Музыка</span>
                 </a>
-                <a href="#" id="link-logout" class="dock-item logout-item">
+                <a href="#" id="link-logout" class="dock-item logout-item" data-tooltip="Выйти">
                     <span class="dock-icon">🚪</span>
-                    <span class="dock-label">Выйти</span>
                 </a>
             </nav>
         </div>
