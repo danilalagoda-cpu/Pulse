@@ -1329,10 +1329,20 @@
 
         function checkAuth() {
             if (currentUserName) {
+                // 1. Ставим базовое имя по умолчанию из логина регистрации (например, "Данила")
                 const formattedName = currentUserName.charAt(0).toUpperCase() + currentUserName.slice(1);
                 if (userDisplayName) userDisplayName.textContent = formattedName;
                 if (avatarPlug) avatarPlug.textContent = currentUserName.charAt(0).toUpperCase();
                 
+                // 2. 🚀 ЖЕСТКИЙ СИНХРОНИЗАТОР: Моментально тянем кастомное имя (например, "Дан") из Firebase
+                db.ref('users/' + currentUserName.toLowerCase() + '/name').on('value', function(snapshot) {
+                    const nameFromDB = snapshot ? snapshot.val() : null;
+                    if (nameFromDB && userDisplayName) {
+                        // Если в базе есть измененное имя — принудительно выводим его на экран
+                        userDisplayName.textContent = nameFromDB;
+                    }
+                });
+
                 authScreen.classList.add('hidden');
                 appScreen.classList.remove('hidden');
                 loadMessages();
@@ -1420,7 +1430,7 @@
                     confirmOverlay.remove();
             
                     // 1. Полностью очищаем данные текущей сессии из браузера
-                    localStorage.removeItem('currentUserUsername');
+                    localStorage.removeItem('pulse_user');
                     localStorage.removeItem('currentUser'); // Очищаем токен или объект, если он есть
             
                     // 2. Жестко переключаем видимость экранов, чтобы они не склеивались
@@ -1586,7 +1596,7 @@
         // Вставьте этот кусок туда, где у вас происходит инициализация профиля после авторизации
         function loadProfileData() {
             const savedName = localStorage.getItem('currentUserName');
-            const currentUsername = localStorage.getItem('currentUserUsername');
+            const currentUsername = localStorage.getItem('pulse_user');
     
             if (currentUsername) {
                 // Если имя есть в кэше — ставим сразу, чтобы не висела "Загрузка..."
@@ -1705,34 +1715,80 @@
             });
         };
 
-
-
-        // 2. Функция клика по кнопке "Синхронизировать" (Добавить в друзья)
+        // Функция клика по кнопке "Синхронизировать" (Полный фикс ключа pulse_user)
         document.getElementById('btn-add-friend-action').onclick = function() {
             if (!foundUserCache) return;
     
-            const currentUsername = localStorage.getItem('currentUserUsername');
+            // 🛡️ ГЛАВНЫЙ ФИКС: Читаем ваш правильный системный ключ сессии из localStorage
+            const currentUsername = localStorage.getItem('pulse_user');
             if (!currentUsername) {
-                showErrorModal("Ошибка сессии", "Пользователь не авторизован.");
+                showErrorModal("Ошибка сессии", "Пользователь не авторизован в системе PULSE.");
                 return;
             }
 
-            // Сохраняем связь взаимно: и у себя, и у найденного человека
-            // Вариант синтаксиса Firebase, под капотом которого ваш REST-мост сделает Fetch на GitHub Pages
-            db.ref('users/' + currentUsername + '/friends/' + foundUserCache.username).set(true);
-            db.ref('users/' + foundUserCache.username + '/friends/' + currentUsername).set(true);
+            // Сохраняем взаимную связь в Firebase через ваш REST-мост
+            db.ref('users/' + currentUsername.toLowerCase() + '/friends/' + foundUserCache.username).set(true);
+            db.ref('users/' + foundUserCache.username + '/friends/' + currentUsername.toLowerCase()).set(true);
     
-            // Очищаем форму поиска
+            // Очищаем оверлей результатов поиска
             document.getElementById('search-result-box').classList.add('hidden');
             document.getElementById('friend-search-input').value = '';
     
-            // Перерендериваем список друзей на экране
-            renderFriendsList();
+            // Мгновенно перерисовываем сетку друзей на экране
+            if (typeof renderFriendsList === 'function') {
+                renderFriendsList();
+            }
         };
+
+        // 🛡️ ДОПОЛНИТЕЛЬНЫЙ ФИКС ДЛЯ СПИСКА ДРУЗЕЙ (Тоже переводим на pulse_user)
+        function renderFriendsList() {
+            const currentUsername = localStorage.getItem('pulse_user');
+            const container = document.getElementById('friends-list-container');
+            const noFriendsText = document.getElementById('no-friends-text');
+            const friendsCounter = document.getElementById('stat-friends'); 
+    
+            if (!currentUsername) return;
+
+            db.ref('users/' + currentUsername.toLowerCase() + '/friends').on('value', function(snapshot) {
+                const friendsObj = snapshot ? snapshot.val() : null;
+                container.innerHTML = '';
+        
+                if (!friendsObj || Object.keys(friendsObj).length === 0) {
+                    if (noFriendsText) noFriendsText.classList.remove('hidden');
+                    if (friendsCounter) friendsCounter.textContent = '0';
+                    return;
+                }
+        
+                if (noFriendsText) noFriendsText.classList.add('hidden');
+                const friendsUsernames = Object.keys(friendsObj);
+        
+                if (friendsCounter) friendsCounter.textContent = friendsUsernames.length;
+
+                friendsUsernames.forEach(fUsername => {
+                    db.ref('users/' + fUsername).on('value', function(userSnapshot) {
+                        const uData = userSnapshot ? userSnapshot.val() : null;
+                        const fName = uData ? (uData.name || fUsername) : fUsername;
+                        const firstLetter = fName.charAt(0).toUpperCase();
+
+                        const card = document.createElement('div');
+                        card.className = 'friend-grid-card';
+                        card.innerHTML = `
+                            <div class="avatar-plug" style="width: 45px; height: 45px; border-radius: 12px; font-size: 18px;">${firstLetter}</div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 15px;">${fName}</div>
+                                <div style="color: var(--text-muted); font-size: 12px;">@${fUsername}</div>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                });
+            });
+        }
+
 
         // 3. Функция вывода списка всех синхронизаций (друзей) на экран
         function renderFriendsList() {
-            const currentUsername = localStorage.getItem('currentUserUsername');
+            const currentUsername = localStorage.getItem('pulse_user');
             const container = document.getElementById('friends-list-container');
             const noFriendsText = document.getElementById('no-friends-text');
             const friendsCounter = document.getElementById('stat-friends'); // Счетчик на карточке профиля
@@ -1785,7 +1841,7 @@
 
         // 1. Инициализация мессенджера (Вызывается при клике на вкладку сообщений)
         function initMessengerLogic() {
-            const currentUsername = localStorage.getItem('currentUserUsername');
+            const currentUsername = localStorage.getItem('pulse_user');
             const chatsAsideContainer = document.getElementById('chats-list-aside');
             const noChatsText = document.getElementById('no-chats-text');
     
@@ -1853,7 +1909,7 @@
 
         // 3. Прослушка сообщений в выбранном чате
         function listenMessages() {
-            const currentUsername = localStorage.getItem('currentUserUsername');
+            const currentUsername = localStorage.getItem('pulse_user');
             const messagesDisplay = document.getElementById('chat-messages-display');
     
             if (!currentUsername || !currentActiveChatFriend) return;
@@ -1899,7 +1955,7 @@
     
             if (!text || !currentActiveChatFriend) return;
     
-            const currentUsername = localStorage.getItem('currentUserUsername');
+            const currentUsername = localStorage.getItem('pulse_user');
             const currentName = document.getElementById('prof-name').textContent;
             const chatId = generateChatId(currentUsername, currentActiveChatFriend);
     
@@ -1926,7 +1982,7 @@
         // --- 🔴 ГЛОБАЛЬНЫЙ СЧЕТЧИК НЕПРОЧИТАННЫХ SMS НА ДОК-ПАНЕЛИ ---
         // Сканирует базу и выводит общее число непрочитанных сообщений, отправленных текущему пользователю
         function startGlobalUnreadMessagesCounter() {
-            const currentUsername = localStorage.getItem('currentUserUsername');
+            const currentUsername = localStorage.getItem('pulse_user');
             const badge = document.getElementById('msg-unread-badge');
     
             if (!currentUsername || !badge) return;
@@ -2038,7 +2094,7 @@
                 e.preventDefault(); // Блокируем перезагрузку страницы
         
                 const text = postTextInput.value.trim();
-                const currentUsername = localStorage.getItem('currentUserUsername');
+                const currentUsername = localStorage.getItem('pulse_user');
                 const currentName = document.getElementById('prof-name').textContent;
                 const postsCounter = document.getElementById('stat-posts');
 
@@ -2131,21 +2187,26 @@
             });
         }
 
-        // === ЯДРО ПОСТОВ: ЧАСТЬ 2 (РЕНДЕРИНГ И ЛАЙКИ) ===
+        // === ЯДРО ПОСТОВ: ЧАСТЬ 2 (ФИНАЛЬНАЯ ПЕРЕСБОРКА И ЛАЙКИ) ===
 
         // Функция генерации HTML-карточек постов в ленте
-        function renderAllPostsHTML(postKeys, allPostsObj, currentUsername) {
+        function renderAllPostsHTML(postKeys, allPostsObj, currentUsernameParam) {
+            // 🛡️ Жестко страхуем переменную юзернейма из localStorage, если аргумент прилетел пустым
+            const currentUsername = currentUsernameParam || localStorage.getItem('pulse_user') || "";
+    
             postKeys.forEach(postKey => {
                 const post = allPostsObj[postKey];
                 const isMyPost = post.authorUsername === currentUsername;
+        
+                // Проверяем, лайкнул ли пост текущий авторизованный пользователь
                 const hasMyLike = post.likesUsers && post.likesUsers[currentUsername] === true;
 
-                // Киберпанк дата публикации
+                // Форматирование киберпанк-даты
                 const dateStr = new Date(post.timestamp).toLocaleString('ru-RU', {
                     hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short'
                 });
 
-                // 🛡️ Безопасное извлечение имени (защита от undefined в старых постах)
+                // Безопасное извлечение имени (защита от undefined в старых постах)
                 const authorDisplayName = post.authorName || post.authorUsername || "Аноним";
                 const firstLetter = authorDisplayName.charAt(0).toUpperCase();
 
@@ -2153,6 +2214,7 @@
                 postCard.className = 'post-card';
                 postCard.id = `post-${postKey}`;
 
+                // Собираем полный HTML-каркас поста со всеми кнопками активности и троеточием
                 postCard.innerHTML = `
                     <!-- Кнопка-троеточие контекстных опций -->
                     <div class="post-options-trigger" onclick="togglePostMenu('${postKey}')">•••</div>
@@ -2164,7 +2226,7 @@
                         <div class="post-menu-item" onclick="copyPostLink('${postKey}')">🔗 Ссылка</div>
                     </div>
 
-                    <!-- Шапка поста (Защищенная от сбоев charAt) -->
+                    <!-- Шапка поста -->
                     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
                         <div class="avatar-plug" style="width: 40px; height: 40px; border-radius: 12px; font-size: 16px;">${firstLetter}</div>
                         <div>
@@ -2179,7 +2241,7 @@
                     <!-- Отрендеренная Base64-картинка из вашей Realtime Database -->
                     ${post.media ? `<img src="${post.media}" class="post-attached-image" alt="Pulse Media">` : ''}
 
-                    <!-- Подвал активности -->
+                    <!-- Подвал активности (Лайки, комменты, репосты) -->
                     <div class="post-actions-footer">
                         <button class="action-btn like-btn ${hasMyLike ? 'active' : ''}" onclick="toggleLike('${postKey}')">
                             <span class="action-icon">❤️</span>
@@ -2197,25 +2259,26 @@
             });
         }
 
-        // Взаимодействие с лайками (Синхронизация с вашей БД)
+        // Взаимодействие с лайками (Полный фикс под ключ pulse_user)
         function toggleLike(postKey) {
-            const currentUsername = localStorage.getItem('currentUserUsername');
+            // 🛡️ Фикс: Читаем ваш правильный системный ключ сессии
+            const currentUsername = localStorage.getItem('pulse_user');
             if (!currentUsername) return;
 
             db.ref('posts/' + postKey).on('value', function(snapshot) {
                 const post = snapshot ? snapshot.val() : null;
                 if (!post) return;
 
-                db.ref('posts/' + postKey).off(); // Отключаем рекурсивный колбэк
+                db.ref('posts/' + postKey).off(); // Отключаем рекурсивный колбэк, если он есть в REST-мосте
 
                 if (!post.likesUsers) post.likesUsers = {};
                 let currentLikes = post.likesCount || 0;
 
                 if (post.likesUsers[currentUsername] === true) {
-                    post.likesUsers[currentUsername] = null; // Убираем лайк в Firebase
+                    post.likesUsers[currentUsername] = null; // Снимаем лайк в базе
                     currentLikes = Math.max(0, currentLikes - 1);
                 } else {
-                    post.likesUsers[currentUsername] = true; // Ставим лайк в Firebase
+                    post.likesUsers[currentUsername] = true; // Ставим лайк в базе
                     currentLikes++;
                 }
 
@@ -2223,6 +2286,7 @@
                 db.ref('posts/' + postKey + '/likesUsers').set(post.likesUsers);
             });
         }
+
 
         // === ЯДРО ПОСТОВ: ЧАСТЬ 3 (КОНТЕКСТНОЕ МЕНЮ И МОДИФИКАЦИЯ) ===
 
