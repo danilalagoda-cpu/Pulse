@@ -1045,7 +1045,7 @@
                                 <!-- Скрытый инпут для загрузки картинок -->
                                 <input type="file" id="post-media-input" accept="image/*" style="display: none;">
                 
-                                <button type="submit" class="btn-pulse-post">Импульс ⚡</button>
+                                <button type="submit" class="btn-pulse-post">Импульс</button>
                             </div>
                         </form>
                     </div>
@@ -1654,7 +1654,7 @@
 
         let foundUserCache = null; // Буфер для хранения найденного пользователя
 
-        // Функция поиска пользователя по базе данных (Исправленная: без регистра и циклов)
+        // Функция поиска пользователя (Версия с флагом-предохранителем вместо отсутствующего .off)
         document.getElementById('btn-search-user').onclick = function() {
             const searchInput = document.getElementById('friend-search-input').value.trim();
             const resultBox = document.getElementById('search-result-box');
@@ -1664,21 +1664,25 @@
                 return;
             }
     
-            // 🛡️ Фикс 1: Принудительно переводим ввод в нижний регистр для базы данных
+            // Форматируем ввод в нижний регистр для точного совпадения с базой
             const formattedSearch = searchInput.toLowerCase();
     
-            // Получаем текущего пользователя из системы авторизации
-            const currentUsername = localStorage.getItem('currentUserUsername'); 
+            // Читаем ваш правильный системный ключ сессии из localStorage
+            const currentUsername = localStorage.getItem('pulse_user'); 
     
             if (formattedSearch === currentUsername?.toLowerCase()) {
                 showErrorModal("Ошибка синхронизации", "Вы не можете добавить в друзья самого себя.");
                 return;
             }
 
-            // Обращаемся к вашей базе через кастомный синтаксис Firebase
+            // 🛡️ Флаг-предохранитель для защиты от циклов (Замена отсутствующего метода .off)
+            let isRequestProcessed = false;
+
+            // Обращаемся к вашей базе через ваш стандартный метод .on()
             db.ref('users/' + formattedSearch).on('value', function(snapshot) {
-                // 🛡️ Фикс 2: Мгновенно отключаем постоянный слушатель (.off), чтобы остановить бесконечный цикл!
-                db.ref('users/' + formattedSearch).off();
+                // Если этот запрос уже был обработан в текущей сессии клика — игнорируем повторный спам бэкенда
+                if (isRequestProcessed) return;
+                isRequestProcessed = true; // Мгновенно взводим предохранитель
         
                 const userData = snapshot ? snapshot.val() : null;
         
@@ -1689,7 +1693,7 @@
                     return;
                 }
         
-                // Если пользователь найден, кэшируем его данные (сохраняем оригинальный ввод для интерфейса)
+                // Если пользователь найден, кэшируем данные для кнопки добавления
                 foundUserCache = {
                     username: formattedSearch,
                     name: userData.name || searchInput
@@ -1700,6 +1704,7 @@
                 resultBox.classList.remove('hidden');
             });
         };
+
 
 
         // 2. Функция клика по кнопке "Синхронизировать" (Добавить в друзья)
@@ -2079,11 +2084,26 @@
         // 2. Фоновый запуск слушателя базы данных (Оставляем без изменений)
         function startPostsListener() {
             if (!postsFeedContainer) return;
-            const currentUsername = localStorage.getItem('currentUserUsername');
+    
+            // Читаем ваш правильный системный ключ сессии из localStorage
+            const currentUsername = localStorage.getItem('pulse_user');
             const postsCounter = document.getElementById('stat-posts');
 
             db.ref('posts').on('value', function(snapshot) {
                 const allPostsObj = snapshot ? snapshot.val() : null;
+        
+                // Превращаем полученные данные в текстовую строку для моментального сравнения
+                const currentSnapshotString = JSON.stringify(allPostsObj);
+        
+                // 🛡️ ГЛАВНЫЙ ФИКС: Если данные в Firebase не изменились — полностью блокируем перерисовку и мерцание!
+                if (currentSnapshotString === lastRenderedSnapshotString) {
+                    return; 
+                }
+        
+                // Запоминаем текущее состояние базы для следующей проверки
+                lastRenderedSnapshotString = currentSnapshotString;
+        
+                // Только если данные действительно изменились, очищаем ленту и рендерим заново
                 postsFeedContainer.innerHTML = ''; 
         
                 if (!allPostsObj) {
@@ -2094,10 +2114,14 @@
 
                 const postKeys = Object.keys(allPostsObj);
         
+                // Синхронизируем счетчик публикаций текущего юзера
                 const myPostsCount = postKeys.filter(key => allPostsObj[key].authorUsername === currentUsername).length;
                 if (postsCounter) postsCounter.textContent = myPostsCount;
 
+                // Новые публикации выводим в самый верх
                 postKeys.sort((a, b) => allPostsObj[b].timestamp - allPostsObj[a].timestamp);
+        
+                // Запускаем безопасную сборку HTML карточек
                 renderAllPostsHTML(postKeys, allPostsObj, currentUsername);
             });
         }
