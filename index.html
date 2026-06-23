@@ -1223,7 +1223,15 @@
                 }
                 getURL() {
                     // НАМЕРТВО ЗАШИВАЕМ ТВОЙ URL: Теперь никакой старый код не сможет его стереть!
-                    const base = "https://pulse-66146-default-rtdb.europe-west1.firebasedatabase.app";
+                    const base = "https://firebasedatabase.app";
+    
+                    // Проверяем, запрашиваем ли мы публичные разделы постов или сообщений
+                    if (this.path.startsWith('posts') || this.path.startsWith('messages')) {
+                        // Для публичных веток убираем параметр auth=, чтобы Firebase не блокировал запросы
+                        return base + '/' + this.path + '.json';
+                    }
+    
+                    // Для всех остальных веток (например, users) оставляем стандартную авторизацию
                     return base + '/' + this.path + '.json?auth=' + this.db.key;
                 }
                 set(value) { return fetch(this.getURL(), { method: 'PUT', body: JSON.stringify(value) }).then(r => r.json()); }
@@ -1358,7 +1366,7 @@
             } catch (e) { showMsg('Ошибка сети!', 'error'); }
         });
 
-        // ВХОД
+        // ВХОД ОБНОВЛЕННЫЙ ОБРАБОТЧИК: ВХОД С ПРИНУДИТЕЛЬНЫМ СБРОСОМ НА МОЙ ПУЛЬС
         loginBtn.addEventListener('click', async () => {
             const name = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value;
@@ -1372,12 +1380,19 @@
                     currentUserName = name;
                     localStorage.setItem('pulse_user', name);
                     showMsg('Успешный вход!', 'success');
+            
+                    // 🚀 ФИКС: Принудительно открываем раздел "Мой Пульс" перед проверкой авторизации
+                    if (typeof forceOpenProfile === 'function') {
+                        forceOpenProfile();
+                    }
+            
                     setTimeout(checkAuth, 500);
                 } else {
                     showMsg('Неверное имя или пароль!', 'error');
                 }
             } catch (e) { showMsg('Ошибка сети!', 'error'); }
         });
+
 
         // Надежный обработчик кнопки выхода с жестким переключением экранов
         if (logoutBtn) {
@@ -1502,7 +1517,7 @@
             });
         }
 
-                // Функция открытия кастомного окна настроек профиля с персистентным сохранением
+        // Функция открытия кастомного окна настроек профиля (Синхронизированная с ключом pulse_user)
         function openSettingsModal() {
             // Получаем текущее имя из профиля
             const currentName = document.getElementById('prof-name').textContent;
@@ -1537,8 +1552,8 @@
                     return;
                 }
         
-                // Получаем юзернейм текущей сессии
-                const currentUsername = localStorage.getItem('currentUserUsername');
+                // 🛡️ Фикс: Читаем ваш правильный ключ сессии из localStorage
+                const currentUsername = localStorage.getItem('pulse_user');
                 if (!currentUsername) {
                     showErrorModal("Ошибка сессии", "Пользователь не авторизован.");
                     return;
@@ -1550,8 +1565,7 @@
                 // 2. Сохраняем в localStorage, чтобы имя подхватывалось при перезагрузке
                 localStorage.setItem('currentUserName', newName);
         
-                // 3. 🚀 ОТПРАВКА В БАЗУ ДАННЫХ через ваш REST-мост
-                // Обновляем конкретное поле name внутри ветки пользователя
+                // 3. 🚀 Отправка в базу данных через ваш REST-мост
                 db.ref('users/' + currentUsername + '/name').set(newName);
         
                 // Закрываем модалку
@@ -1566,6 +1580,7 @@
                 if (event.target === settingsOverlay) settingsOverlay.remove();
             };
         }
+
 
         // --- СЛУЖЕБНЫЙ КОД ДЛЯ ИНИЦИАЛИЗАЦИИ ИМЕНИ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ---
         // Вставьте этот кусок туда, где у вас происходит инициализация профиля после авторизации
@@ -1639,7 +1654,7 @@
 
         let foundUserCache = null; // Буфер для хранения найденного пользователя
 
-        // 1. Функция поиска пользователя по базе данных
+        // Функция поиска пользователя по базе данных (Исправленная: без регистра и циклов)
         document.getElementById('btn-search-user').onclick = function() {
             const searchInput = document.getElementById('friend-search-input').value.trim();
             const resultBox = document.getElementById('search-result-box');
@@ -1649,16 +1664,22 @@
                 return;
             }
     
-            // Имитируем получение текущего пользователя из вашей системы авторизации
+            // 🛡️ Фикс 1: Принудительно переводим ввод в нижний регистр для базы данных
+            const formattedSearch = searchInput.toLowerCase();
+    
+            // Получаем текущего пользователя из системы авторизации
             const currentUsername = localStorage.getItem('currentUserUsername'); 
     
-            if (searchInput === currentUsername) {
+            if (formattedSearch === currentUsername?.toLowerCase()) {
                 showErrorModal("Ошибка синхронизации", "Вы не можете добавить в друзья самого себя.");
                 return;
             }
 
             // Обращаемся к вашей базе через кастомный синтаксис Firebase
-            db.ref('users/' + searchInput).on('value', function(snapshot) {
+            db.ref('users/' + formattedSearch).on('value', function(snapshot) {
+                // 🛡️ Фикс 2: Мгновенно отключаем постоянный слушатель (.off), чтобы остановить бесконечный цикл!
+                db.ref('users/' + formattedSearch).off();
+        
                 const userData = snapshot ? snapshot.val() : null;
         
                 if (!userData) {
@@ -1668,9 +1689,9 @@
                     return;
                 }
         
-                // Если пользователь найден, кэшируем его и выводим карточку на экран
+                // Если пользователь найден, кэшируем его данные (сохраняем оригинальный ввод для интерфейса)
                 foundUserCache = {
-                    username: searchInput,
+                    username: formattedSearch,
                     name: userData.name || searchInput
                 };
         
@@ -1679,6 +1700,7 @@
                 resultBox.classList.remove('hidden');
             });
         };
+
 
         // 2. Функция клика по кнопке "Синхронизировать" (Добавить в друзья)
         document.getElementById('btn-add-friend-action').onclick = function() {
@@ -1999,13 +2021,13 @@
             };
         }
 
-        // === ЯДРО ПОСТОВ: ЧАСТЬ 1 (ОТПРАВКА И СЛУШАТЕЛЬ ЛЕНТЫ) ===
+        // === ЯДРО ПОСТОВ: ЧАСТЬ 1 (ОБНОВЛЕННАЯ ОТПРАВКА С ГАРАНТИЕЙ МЕДИА) ===
 
         const postForm = document.getElementById('post-form');
         const postTextInput = document.getElementById('post-text-input');
         const postsFeedContainer = document.getElementById('profile-wall-posts');
 
-        // 1. Отправка публикации в вашу базу данных
+        // 1. Отправка публикации в вашу базу данных (С фиксацией картинки)
         if (postForm) {
             postForm.onsubmit = function(e) {
                 e.preventDefault(); // Блокируем перезагрузку страницы
@@ -2013,6 +2035,7 @@
                 const text = postTextInput.value.trim();
                 const currentUsername = localStorage.getItem('currentUserUsername');
                 const currentName = document.getElementById('prof-name').textContent;
+                const postsCounter = document.getElementById('stat-posts');
 
                 if (!text) return;
                 if (!currentUsername) {
@@ -2020,29 +2043,40 @@
                     return;
                 }
 
-                // Формируем чистый киберпанк-объект для Realtime Database
+                // Жестко фиксируем медиафайл из глобального буфера в локальную переменную перед пушем
+                const mediaToUpload = attachedImageBase64;
+
+                // Формируем киберпанк-объект для Realtime Database
                 const postData = {
                     authorUsername: currentUsername,
                     authorName: currentName === 'Загрузка...' ? currentUsername : currentName,
                     text: text,
-                    media: attachedImageBase64 || null, // Строка Base64 картинки
+                    media: mediaToUpload || null, // Строка Base64 картинки гарантированно улетает сюда
                     timestamp: Date.now(),
                     likesCount: 0,
-                    likesUsers: {} // База для хранения юзернеймов
+                    likesUsers: {}
                 };
 
                 // 🚀 Пушим в вашу базу через REST-мост
                 db.ref('posts').push(postData);
 
-                // Сброс полей формы и скрытие превью
+                // Полное очищение формы и буферов строго после отправки
                 postTextInput.value = '';
-                if (document.getElementById('btn-remove-media')) {
-                    document.getElementById('btn-remove-media').click();
-                }
+                attachedImageBase64 = null; // Очищаем глобальный буфер медиа
+        
+                // Сбрасываем системный инпут выбора файлов
+                const actualMediaInput = document.getElementById('post-media-input');
+                if (actualMediaInput) actualMediaInput.value = '';
+        
+                // Скрываем контейнер предпросмотра картинки на экране
+                const previewContainer = document.getElementById('post-media-preview');
+                const previewImageTag = document.getElementById('preview-img');
+                if (previewContainer) previewContainer.style.display = 'none';
+                if (previewImageTag) previewImageTag.src = '';
             };
         }
 
-        // 2. Фоновый запуск слушателя базы данных
+        // 2. Фоновый запуск слушателя базы данных (Оставляем без изменений)
         function startPostsListener() {
             if (!postsFeedContainer) return;
             const currentUsername = localStorage.getItem('currentUserUsername');
@@ -2050,7 +2084,7 @@
 
             db.ref('posts').on('value', function(snapshot) {
                 const allPostsObj = snapshot ? snapshot.val() : null;
-                postsFeedContainer.innerHTML = ''; // Очистка перед перерисовкой
+                postsFeedContainer.innerHTML = ''; 
         
                 if (!allPostsObj) {
                     if (postsCounter) postsCounter.textContent = '0';
@@ -2060,14 +2094,10 @@
 
                 const postKeys = Object.keys(allPostsObj);
         
-                // Синхронизируем счетчик постов текущего юзера в статистику
                 const myPostsCount = postKeys.filter(key => allPostsObj[key].authorUsername === currentUsername).length;
                 if (postsCounter) postsCounter.textContent = myPostsCount;
 
-                // Сортировка: новые записи всегда вверху
                 postKeys.sort((a, b) => allPostsObj[b].timestamp - allPostsObj[a].timestamp);
-
-                // Передаем ключи на сборку структуры HTML
                 renderAllPostsHTML(postKeys, allPostsObj, currentUsername);
             });
         }
@@ -2252,6 +2282,25 @@
 
         // Автоматический безопасный старт прослушивания ленты после загрузки DOM
         setTimeout(startPostsListener, 1200);
+
+        // Функция принудительного сброса навигации на раздел "Мой Пульс" при входе
+        function forceOpenProfile() {
+            const profileLink = document.getElementById('link-profile');
+    
+            if (profileLink) {
+                // Имитируем физический клик по кнопке профиля, чтобы сработал весь наш код навигации
+                profileLink.click();
+            } else {
+                // Резервный вариант на случай, если события клика еще не навесились
+                document.querySelectorAll('.dock-item').forEach(btn => btn.classList.remove('active'));
+                const profBtn = document.getElementById('link-profile');
+                if (profBtn) profBtn.classList.add('active');
+        
+                document.querySelectorAll('.page-section').forEach(section => section.classList.add('hidden'));
+                const profPage = document.getElementById('page-profile');
+                if (profPage) profPage.classList.remove('hidden');
+            }
+        }
 
 
         checkAuth();
