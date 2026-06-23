@@ -1329,28 +1329,36 @@
 
         function checkAuth() {
             if (currentUserName) {
-                // 1. Ставим базовое имя по умолчанию из логина регистрации (например, "Данила")
+                // Ставим базовое имя по умолчанию из логина регистрации
                 const formattedName = currentUserName.charAt(0).toUpperCase() + currentUserName.slice(1);
                 if (userDisplayName) userDisplayName.textContent = formattedName;
                 if (avatarPlug) avatarPlug.textContent = currentUserName.charAt(0).toUpperCase();
                 
-                // 2. 🚀 ЖЕСТКИЙ СИНХРОНИЗАТОР: Моментально тянем кастомное имя (например, "Дан") из Firebase
+                // Моментально тянем кастомное имя (например, "Дан") из Firebase
                 db.ref('users/' + currentUserName.toLowerCase() + '/name').on('value', function(snapshot) {
                     const nameFromDB = snapshot ? snapshot.val() : null;
                     if (nameFromDB && userDisplayName) {
-                        // Если в базе есть измененное имя — принудительно выводим его на экран
                         userDisplayName.textContent = nameFromDB;
                     }
                 });
 
                 authScreen.classList.add('hidden');
                 appScreen.classList.remove('hidden');
+                
+                // --- ГЛОБАЛЬНЫЙ ЗАПУСК ФОНОВЫХ СЛУЖБ ПРИ СТАРТЕ СЕССИИ ---
                 loadMessages();
+                
+                // 👥 🚀 ФИКС: Принудительно запускаем фоновый подсчет друзей, чтобы счетчик синхронизаций загрузился сразу!
+                if (typeof renderFriendsList === 'function') {
+                    renderFriendsList();
+                }
+                
             } else {
                 authScreen.classList.remove('hidden');
                 appScreen.classList.add('hidden');
             }
         }
+
 
         // РЕГИСТРАЦИЯ
         registerBtn.addEventListener('click', async () => {
@@ -1376,7 +1384,7 @@
             } catch (e) { showMsg('Ошибка сети!', 'error'); }
         });
 
-        // ВХОД ОБНОВЛЕННЫЙ ОБРАБОТЧИК: ВХОД С ПРИНУДИТЕЛЬНЫМ СБРОСОМ НА МОЙ ПУЛЬС
+        // ОБНОВЛЕННЫЙ ОБРАБОТЧИК: ВХОД С МГНОВЕННОЙ СИНХРОНИЗАЦИЕЙ ВСЕХ ДАННЫХ
         loginBtn.addEventListener('click', async () => {
             const name = usernameInput.value.trim().toLowerCase();
             const pass = passwordInput.value;
@@ -1391,9 +1399,14 @@
                     localStorage.setItem('pulse_user', name);
                     showMsg('Успешный вход!', 'success');
             
-                    // 🚀 ФИКС: Принудительно открываем раздел "Мой Пульс" перед проверкой авторизации
+                    // Принудительно открываем раздел "Мой Пульс"
                     if (typeof forceOpenProfile === 'function') {
                         forceOpenProfile();
+                    }
+            
+                    // 👥 🚀 ФИКС: Запускаем подсчет друзей в момент клика, чтобы профиль открылся с правильной цифрой
+                    if (typeof renderFriendsList === 'function') {
+                        renderFriendsList();
                     }
             
                     setTimeout(checkAuth, 500);
@@ -1402,6 +1415,7 @@
                 }
             } catch (e) { showMsg('Ошибка сети!', 'error'); }
         });
+
 
 
         // Надежный обработчик кнопки выхода с жестким переключением экранов
@@ -1742,15 +1756,24 @@
 
         // 🛡️ ДОПОЛНИТЕЛЬНЫЙ ФИКС ДЛЯ СПИСКА ДРУЗЕЙ (Тоже переводим на pulse_user)
         function renderFriendsList() {
+            // Читаем ваш правильный системный ключ сессии
             const currentUsername = localStorage.getItem('pulse_user');
             const container = document.getElementById('friends-list-container');
             const noFriendsText = document.getElementById('no-friends-text');
             const friendsCounter = document.getElementById('stat-friends'); 
     
-            if (!currentUsername) return;
+            if (!currentUsername || !container) return;
+
+            // Флаг-предохранитель верхнего уровня, чтобы остановить бесконечный спам асинхронных колбэков
+            let isFriendsRendered = false;
 
             db.ref('users/' + currentUsername.toLowerCase() + '/friends').on('value', function(snapshot) {
+                if (isFriendsRendered) return;
+                isFriendsRendered = true;
+
                 const friendsObj = snapshot ? snapshot.val() : null;
+        
+                // 🛡️ МГНОВЕННАЯ ОЧИСТКА: Удаляем все старые карточки, перед тем как рисовать новые!
                 container.innerHTML = '';
         
                 if (!friendsObj || Object.keys(friendsObj).length === 0) {
@@ -1762,14 +1785,26 @@
                 if (noFriendsText) noFriendsText.classList.add('hidden');
                 const friendsUsernames = Object.keys(friendsObj);
         
+                // Синхронизируем реальное количество друзей в статистику профиля
                 if (friendsCounter) friendsCounter.textContent = friendsUsernames.length;
 
+                // Перебираем юзернеймы друзей
                 friendsUsernames.forEach(fUsername => {
+                    // Флаг для внутренней карточки
+                    let isCardBuilt = false;
+
                     db.ref('users/' + fUsername).on('value', function(userSnapshot) {
+                        if (isCardBuilt) return;
+                        isCardBuilt = true;
+
+                        // Отключаем внутренний слушатель, чтобы база не спамила по кругу
+                        db.ref('users/' + fUsername).off();
+
                         const uData = userSnapshot ? userSnapshot.val() : null;
                         const fName = uData ? (uData.name || fUsername) : fUsername;
                         const firstLetter = fName.charAt(0).toUpperCase();
 
+                        // Создаем ровно ОДНУ карточку друга
                         const card = document.createElement('div');
                         card.className = 'friend-grid-card';
                         card.innerHTML = `
@@ -1785,41 +1820,55 @@
             });
         }
 
-
-        // 3. Функция вывода списка всех синхронизаций (друзей) на экран
+        // 3. Функция вывода списка всех синхронизаций (друзей) на экран (Ультра-безопасная версия)
         function renderFriendsList() {
             const currentUsername = localStorage.getItem('pulse_user');
             const container = document.getElementById('friends-list-container');
             const noFriendsText = document.getElementById('no-friends-text');
             const friendsCounter = document.getElementById('stat-friends'); // Счетчик на карточке профиля
     
-            if (!currentUsername) return;
+            // Если контейнера для карточек нет на текущей странице, тихо выходим и не вешаем JS-поток
+            if (!currentUsername || !container) return;
+
+            // Флаг-предохранитель для остановки бесконечного цикла опроса базы данных
+            let isFriendsRendered = false;
 
             // Читаем список друзей текущего юзера
-            db.ref('users/' + currentUsername + '/friends').on('value', function(snapshot) {
+            db.ref('users/' + currentUsername.toLowerCase() + '/friends').on('value', function(snapshot) {
+                if (isFriendsRendered) return;
+                isFriendsRendered = true;
+
                 const friendsObj = snapshot ? snapshot.val() : null;
-                container.innerHTML = '';
         
+                // Жесткая очистка: стираем старые клоны перед отрисовкой
+                container.innerHTML = '';
+
                 if (!friendsObj || Object.keys(friendsObj).length === 0) {
-                    noFriendsText.classList.remove('hidden');
+                    // Безопасно убираем скрывающий класс, если элемент существует
+                    if (noFriendsText) noFriendsText.classList.remove('hidden');
                     if (friendsCounter) friendsCounter.textContent = '0';
                     return;
                 }
-        
-                noFriendsText.classList.add('hidden');
+
+                if (noFriendsText) noFriendsText.classList.add('hidden');
                 const friendsUsernames = Object.keys(friendsObj);
-        
+
                 // Динамически обновляем счетчик "Синхронизаций" на главной
                 if (friendsCounter) friendsCounter.textContent = friendsUsernames.length;
 
                 // Для каждого юзернейма из списка друзей тянем его реальное Имя
                 friendsUsernames.forEach(fUsername => {
+                    let isCardBuilt = false;
+
                     db.ref('users/' + fUsername).on('value', function(userSnapshot) {
+                        if (isCardBuilt) return;
+                        isCardBuilt = true;
+
                         const uData = userSnapshot ? userSnapshot.val() : null;
                         const fName = uData ? (uData.name || fUsername) : fUsername;
                         const firstLetter = fName.charAt(0).toUpperCase();
 
-                        // Создаем карточку в сетке друзей
+                        // Создаем ровно ОДНУ карточку друга в сетке друзей
                         const card = document.createElement('div');
                         card.className = 'friend-grid-card';
                         card.innerHTML = `
@@ -1835,38 +1884,54 @@
             });
         }
 
+
         // --- ЛОГИКА РАЗДЕЛА «СООБЩЕНИЯ» (МЕССЕНДЖЕР) ---
 
         let currentActiveChatFriend = null; // Юзернейм того, с кем сейчас открыт чат
 
-        // 1. Инициализация мессенджера (Вызывается при клике на вкладку сообщений)
+        // Финальная ультра-стабильная версия инициализации списка диалогов мессенджера
         function initMessengerLogic() {
+            // Читаем ваш правильный рабочий ключ сессии pulse_user
             const currentUsername = localStorage.getItem('pulse_user');
             const chatsAsideContainer = document.getElementById('chats-list-aside');
             const noChatsText = document.getElementById('no-chats-text');
     
-            if (!currentUsername) return;
+            if (!currentUsername || !chatsAsideContainer) return;
+
+            // Флаг-предохранитель верхнего уровня, защищающий от ложных тактов опроса базы
+            let isMessengerRendered = false;
 
             // Подгружаем список друзей для формирования диалогов
-            db.ref('users/' + currentUsername + '/friends').on('value', function(snapshot) {
+            db.ref('users/' + currentUsername.toLowerCase() + '/friends').on('value', function(snapshot) {
+                if (isMessengerRendered) return;
+                isMessengerRendered = true;
+
                 const friendsObj = snapshot ? snapshot.val() : null;
+        
+                // 🛡️ ЖЕСТКАЯ ОЧИСТКА: Удаляем все старые плашки диалогов перед созданием новых!
                 chatsAsideContainer.innerHTML = '';
         
                 if (!friendsObj || Object.keys(friendsObj).length === 0) {
-                    noChatsText.classList.remove('hidden');
+                    if (noChatsText) noChatsText.classList.remove('hidden');
                     return;
                 }
         
-                noChatsText.classList.add('hidden');
+                if (noChatsText) noChatsText.classList.add('hidden');
                 const friendsList = Object.keys(friendsObj);
 
                 friendsList.forEach(fUsername => {
+                    // Флаг-предохранитель для внутренней плашки диалога
+                    let isItemBuilt = false;
+
                     db.ref('users/' + fUsername).on('value', function(userSnapshot) {
+                        if (isItemBuilt) return;
+                        isItemBuilt = true;
+
                         const uData = userSnapshot ? userSnapshot.val() : null;
                         const fName = uData ? (uData.name || fUsername) : fUsername;
                         const firstLetter = fName.charAt(0).toUpperCase();
                 
-                        // Создаем плашку диалога слева
+                        // Создаем ровно ОДНУ интерактивную плашку диалога слева
                         const chatItem = document.createElement('div');
                         chatItem.className = `chat-aside-item ${currentActiveChatFriend === fUsername ? 'active' : ''}`;
                         chatItem.innerHTML = `
@@ -1877,7 +1942,7 @@
                             </div>
                         `;
                 
-                        // Клик по диалогу открывает чат
+                        // Клик по диалогу открывает окно чата справа
                         chatItem.onclick = function() {
                             openChatWithUser(fUsername, fName);
                         };
@@ -1888,37 +1953,96 @@
             });
         }
 
-        // 2. Открытие конкретного чата с пользователем
+
+        // 2. Открытие чата с пользователем и динамический расчет статуса Online/Offline
         function openChatWithUser(friendUsername, friendName) {
             currentActiveChatFriend = friendUsername;
     
-            // Переключаем активные классы в левой панели
-            initMessengerLogic();
+            // Переключаем активные классы в левой панели, чтобы подсветить выбранный диалог
+            if (typeof initMessengerLogic === 'function') initMessengerLogic();
     
-            // Настраиваем шапку чата справа
+            // Настраиваем базовые текстовые данные в шапке чата справа
             document.getElementById('chat-header-name').textContent = friendName;
             document.getElementById('chat-header-avatar').textContent = friendName.charAt(0).toUpperCase();
     
-            // Переключаем видимость окон
+            // Переключаем видимость окон (прячем заглушку, открываем чат)
             document.getElementById('chat-stub').classList.add('hidden');
             document.getElementById('chat-active-body').classList.remove('hidden');
     
-            // Включаем прослушку сообщений в реальном времени
-            listenMessages();
+            // 🛡️ 🚀 ДИНАМИЧЕСКИЙ КИБЕР-СТАТУС СОБЕСЕДНИКА
+            const statusTextNode = document.querySelector('.online-status .status-text');
+            const pulseDotNode = document.querySelector('.online-status .pulse-dot');
+    
+            if (statusTextNode && pulseDotNode) {
+                // Подключаем слушатель к метке времени последней активности собеседника
+                db.ref('users/' + friendUsername.toLowerCase() + '/lastSeen').on('value', function(snapshot) {
+                    const lastSeenTimestamp = snapshot ? snapshot.val() : null;
+            
+                    if (!lastSeenTimestamp) {
+                        // Если в базе вообще нет метки времени (аккаунт ни разу не заходил после обновления)
+                        statusTextNode.textContent = "offline";
+                        statusTextNode.style.color = "var(--text-muted)";
+                        pulseDotNode.style.background = "#555";
+                        pulseDotNode.style.boxShadow = "none";
+                        return;
+                    }
+            
+                    // Считаем разницу во времени между текущим моментом и последним действием юзера
+                    const timeDifference = Date.now() - lastSeenTimestamp;
+                    const fiveMinutesInMs = 5 * 60 * 1000; // 300 000 миллисекунд
+            
+                    if (timeDifference < fiveMinutesInMs) {
+                        // Собеседник проявлял активность меньше 5 минут назад — он в сети!
+                        statusTextNode.textContent = "online";
+                        statusTextNode.style.color = "var(--neon-green)";
+                        pulseDotNode.style.background = "var(--neon-green)";
+                        pulseDotNode.style.boxShadow = "0 0 10px var(--neon-green)";
+                    } else {
+                        // Больше 5 минут тишины — переводим в оффлайн
+                        statusTextNode.textContent = "offline";
+                        statusTextNode.style.color = "var(--text-muted)";
+                        pulseDotNode.style.background = "#555";
+                        pulseDotNode.style.boxShadow = "none";
+                    }
+                });
+            }
+    
+            // Включаем безопасную прослушку сообщений в реальном времени
+            if (typeof listenMessages === 'function') listenMessages();
         }
 
+
         // 3. Прослушка сообщений в выбранном чате
+        // Жестко инициализируем глобальный буфер чата в объекте window
+        if (typeof window.lastChatSnapshotString === 'undefined') {
+            window.lastChatSnapshotString = "";
+        }
+
+        // 3. Прослушка сообщений в выбранном чате (Исправленная: без мерцания)
         function listenMessages() {
             const currentUsername = localStorage.getItem('pulse_user');
             const messagesDisplay = document.getElementById('chat-messages-display');
     
-            if (!currentUsername || !currentActiveChatFriend) return;
+            if (!currentUsername || !currentActiveChatFriend || !messagesDisplay) return;
     
             // Генерируем сквозной алфавитный ID чата
             const chatId = generateChatId(currentUsername, currentActiveChatFriend);
     
             db.ref('messages/' + chatId).on('value', function(snapshot) {
                 const msgsObj = snapshot ? snapshot.val() : null;
+        
+                // Превращаем полученные сообщения в текстовую строку для моментального сравнения
+                const currentChatString = JSON.stringify(msgsObj);
+        
+                // 🛡️ ГЛАВНЫЙ ФИКС МЕРЦАНИЯ: Если в переписке ничего не изменилось — блокируем перерисовку!
+                if (currentChatString === window.lastChatSnapshotString) {
+                    return; 
+                }
+        
+                // Запоминаем текущее состояние чата
+                window.lastChatSnapshotString = currentChatString;
+        
+                // Только если реально прилетело новое SMS, очищаем окно и перерисовываем
                 messagesDisplay.innerHTML = '';
         
                 if (!msgsObj) return;
@@ -1943,10 +2067,11 @@
                     messagesDisplay.appendChild(msgElement);
                 });
         
-                // Автоматический скролл вниз чата
+                // Автоматический плавный скролл вниз чата к последнему SMS
                 messagesDisplay.scrollTop = messagesDisplay.scrollHeight;
             });
         }
+
 
         // 4. Отправка сообщения
         function sendChatMessage() {
@@ -1985,22 +2110,18 @@
             const currentUsername = localStorage.getItem('pulse_user');
             const badge = document.getElementById('msg-unread-badge');
     
-            if (!currentUsername || !badge) return;
+            if (!currentUsername || !badge) return; // Если баджа нет на странице — функция тихо завершается, не ломая код
     
             db.ref('messages').on('value', function(snapshot) {
                 const allChats = snapshot ? snapshot.val() : null;
                 let totalUnread = 0;
         
                 if (allChats) {
-                    // Перебираем все существующие чаты в базе данных
                     Object.keys(allChats).forEach(chatId => {
-                        // Проверяем, относится ли этот чат к текущему пользователю
-                        if (chatId.includes(currentUsername)) {
+                        if (chatId.includes(currentUsername.toLowerCase())) {
                             const chatMessages = allChats[chatId];
-                    
                             Object.keys(chatMessages).forEach(msgKey => {
                                 const msg = chatMessages[msgKey];
-                                // Если сообщение пришло нам и оно не прочитано
                                 if (msg.sender !== currentUsername && msg.read === false) {
                                     totalUnread++;
                                 }
@@ -2009,12 +2130,12 @@
                     });
                 }
         
-                // Выводим цифру или прячем бадж, если непрочитанных нет
+                // 🛡️ Безопасное управление баджем
                 if (totalUnread > 0) {
                     badge.textContent = totalUnread;
-                    badge.classList.remove('hidden');
+                    if (badge) badge.classList.remove('hidden');
                 } else {
-                    badge.classList.add('hidden');
+                    if (badge) badge.classList.add('hidden');
                 }
             });
         }
@@ -2394,6 +2515,21 @@
                 if (profPage) profPage.classList.remove('hidden');
             }
         }
+
+        // --- КИБЕР-ПРОТОКОЛ АКТИВНОСТИ В СЕТИ ---
+        function updateMyOnlineStatus() {
+            const currentUsername = localStorage.getItem('pulse_user');
+            if (!currentUsername) return;
+
+            // Записываем текущую метку времени в базу данных через ваш REST-мост
+            db.ref('users/' + currentUsername.toLowerCase() + '/lastSeen').set(Date.now());
+        }
+
+        // Запускаем обновление активности каждые 2 минуты, пока страница открыта
+        setInterval(updateMyOnlineStatus, 120000);
+
+        // Также обновляем статус мгновенно при первой загрузке страницы
+        setTimeout(updateMyOnlineStatus, 2000);
 
 
         checkAuth();
