@@ -2081,7 +2081,12 @@
             };
         }
 
-        // 2. Фоновый запуск слушателя базы данных (Оставляем без изменений)
+                // 2. Фоновый запуск слушателя базы данных (Оставляем без изменений)
+                // Жестко инициализируем глобальную переменную в объекте window, чтобы её видели все области видимости
+        if (typeof window.lastRenderedSnapshotString === 'undefined') {
+            window.lastRenderedSnapshotString = "";
+        }
+
         function startPostsListener() {
             if (!postsFeedContainer) return;
     
@@ -2092,18 +2097,18 @@
             db.ref('posts').on('value', function(snapshot) {
                 const allPostsObj = snapshot ? snapshot.val() : null;
         
-                // Превращаем полученные данные в текстовую строку для моментального сравнения
+                // Превращаем данные из базы в текстовую строку для моментального сравнения
                 const currentSnapshotString = JSON.stringify(allPostsObj);
         
-                // 🛡️ ГЛАВНЫЙ ФИКС: Если данные в Firebase не изменились — полностью блокируем перерисовку и мерцание!
-                if (currentSnapshotString === lastRenderedSnapshotString) {
+                // 🛡️ ГЛАВНЫЙ ФИКС: Сравниваем через объект window. Если данные не изменились — полностью блокируем мерцание!
+                if (currentSnapshotString === window.lastRenderedSnapshotString) {
                     return; 
                 }
         
-                // Запоминаем текущее состояние базы для следующей проверки
-                lastRenderedSnapshotString = currentSnapshotString;
+                // Запоминаем текущее состояние базы данных для следующего такта опроса
+                window.lastRenderedSnapshotString = currentSnapshotString;
         
-                // Только если данные действительно изменились, очищаем ленту и рендерим заново
+                // Только если данные действительно обновились, очищаем контейнер и запускаем перерисовку
                 postsFeedContainer.innerHTML = ''; 
         
                 if (!allPostsObj) {
@@ -2114,14 +2119,14 @@
 
                 const postKeys = Object.keys(allPostsObj);
         
-                // Синхронизируем счетчик публикаций текущего юзера
+                // Синхронизируем счетчик публикаций текущего пользователя на карточке профиля
                 const myPostsCount = postKeys.filter(key => allPostsObj[key].authorUsername === currentUsername).length;
                 if (postsCounter) postsCounter.textContent = myPostsCount;
 
-                // Новые публикации выводим в самый верх
+                // Сортируем: новые импульсы всегда выводятся на самый верх ленты
                 postKeys.sort((a, b) => allPostsObj[b].timestamp - allPostsObj[a].timestamp);
         
-                // Запускаем безопасную сборку HTML карточек
+                // Передаем очищенные данные во Вторую часть для полной сборки карточек (лайки, троеточие, медиа)
                 renderAllPostsHTML(postKeys, allPostsObj, currentUsername);
             });
         }
